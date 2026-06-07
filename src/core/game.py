@@ -258,7 +258,10 @@ class Game:
             self._interact()
 
     def _toggle_panel(self, panel: str) -> None:
-        self.active_panel = None if self.active_panel == panel else panel
+        if self.active_panel is None:
+            self.active_panel = panel
+        elif self.active_panel == panel:
+            self.active_panel = None
 
     def _cycle_panel(self) -> None:
         order = [None, "inventory", "character", "skills", "map"]
@@ -638,9 +641,12 @@ class Game:
     def _update_playing(self, dt: float) -> None:
         if not all([self.player, self.world, self.camera, self.exploration]):
             return
-        blocked = self.active_panel in {"inventory", "shop", "character", "skills", "map", "pause", "building", "crafting", "cooking", "chest", "dialogue"}
-        if not blocked:
-            self.player.update(dt, self.input, self.world, self.weather_system, self.particles)
+        ui_open = self.active_panel in {"inventory", "shop", "character", "skills", "map", "building", "crafting", "cooking", "chest", "dialogue"}
+        paused = self.active_panel == "pause"
+        
+        if not paused:
+            if not ui_open:
+                self.player.update(dt, self.input, self.world, self.weather_system, self.particles)
             self.world.update(dt)
             for npc in self.npcs:
                 npc.update(dt)
@@ -742,27 +748,21 @@ class Game:
     def _draw_world_overlays(self) -> None:
         color, alpha = self.weather_system.overlay()
         darkness = self.time_system.light_alpha()
-        total_alpha = min(170, alpha + darkness)
+        total_alpha = min(255, alpha + darkness)
         if total_alpha > 0:
             overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
             overlay.fill((*color, total_alpha))
             if self.world and self.camera:
-                for pos, radius, light_color in self.world.light_sources(self.weather_system):
+                all_lights = [(self.player.center, 85, (255, 255, 230))] + self.world.light_sources(self.weather_system)
+                for pos, radius, light_color in all_lights:
                     screen_pos = pos - self.camera.offset
                     if -radius <= screen_pos.x <= self.screen.get_width() + radius and -radius <= screen_pos.y <= self.screen.get_height() + radius:
                         light = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
                         for step in range(radius, 0, -10):
-                            strength = int(135 * (step / radius) ** 2)
+                            strength = int(255 * (step / radius) ** 2)
                             pygame.draw.circle(light, (0, 0, 0, strength), (radius, radius), step)
                         overlay.blit(light, (screen_pos.x - radius, screen_pos.y - radius), special_flags=pygame.BLEND_RGBA_SUB)
             self.screen.blit(overlay, (0, 0))
-            if self.world and self.camera:
-                for pos, radius, light_color in self.world.light_sources(self.weather_system):
-                    screen_pos = pos - self.camera.offset
-                    glow = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
-                    pygame.draw.circle(glow, (*light_color, 28), (radius, radius), radius)
-                    pygame.draw.circle(glow, (*light_color, 48), (radius, radius), radius // 3)
-                    self.screen.blit(glow, (screen_pos.x - radius, screen_pos.y - radius), special_flags=pygame.BLEND_RGBA_ADD)
 
     def _draw_active_panel(self) -> None:
         if not self.active_panel or not self.player or not self.world or not self.exploration:

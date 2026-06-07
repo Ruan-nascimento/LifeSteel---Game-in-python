@@ -41,10 +41,10 @@ class TimeSystem:
         if 6 <= self.hour < 18:
             return 0
         if 18 <= self.hour < 20:
-            return int((self.hour - 18) / 2 * 90)
+            return int((self.hour - 18) / 2 * 240)
         if 4 <= self.hour < 6:
-            return int((6 - self.hour) / 2 * 90)
-        return 110
+            return int((6 - self.hour) / 2 * 240)
+        return 240
 
     def to_dict(self) -> dict:
         return {"day": self.day, "minutes": self.minutes}

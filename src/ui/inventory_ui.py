@@ -139,6 +139,24 @@ class InventoryUI:
             y += 24
         if item.is_building():
             draw_text(surface, "Equipe e clique no mundo para colocar.", (details.x + 18, y), COLORS["accent"], 13, bold=True)
+            y += 24
+        
+        if "heal" in item.data:
+            draw_text(surface, f"Recupera {item.data['heal']} Vida", (details.x + 18, y), COLORS["hp"], 14)
+            y += 24
+        if "hunger" in item.data:
+            draw_text(surface, f"Recupera {item.data['hunger']} Fome", (details.x + 18, y), COLORS["hunger"], 14)
+            y += 24
+        if "thirst" in item.data:
+            draw_text(surface, f"Recupera {item.data['thirst']} Sede", (details.x + 18, y), COLORS["thirst"], 14)
+            y += 24
+        if "energy" in item.data:
+            draw_text(surface, f"Recupera {item.data['energy']} Energia", (details.x + 18, y), COLORS["energy"], 14)
+            y += 24
+        if "mana" in item.data:
+            draw_text(surface, f"Recupera {item.data['mana']} Mana", (details.x + 18, y), COLORS["mana"], 14)
+            y += 24
+        
         self._draw_action_buttons(surface, details, item)
 
     def _selected_slot(self, player):
