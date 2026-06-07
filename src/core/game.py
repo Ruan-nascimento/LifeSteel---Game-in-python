@@ -31,6 +31,7 @@ from src.systems.inventory_system import Inventory, InventorySlot
 from src.systems.map_exploration_system import MapExplorationSystem
 from src.systems.particle_system import ParticleManager
 from src.systems.quest_system import QuestSystem
+from src.systems.reading_system import ReadingSystem
 from src.systems.shop_system import ShopSystem
 from src.systems.time_system import TimeSystem
 from src.systems.weather_system import WeatherSystem
@@ -295,7 +296,10 @@ class Game:
             if slot and slot.item.is_consumable():
                 self._consume_inventory_slot(source, index)
             elif inventory and self.player.use_inventory_slot(inventory, index):
-                self.notifications.push("Item usado.")
+                result = self.player.last_consumable_result or {}
+                self.notifications.push(result.get("message", "Item usado."))
+                for reward in result.get("rewards", []):
+                    self.notifications.push(reward)
         elif kind == "equip_slot":
             _, source, index = action
             if source != "main":
@@ -610,7 +614,7 @@ class Game:
     def _cook_item(self, raw_id: str) -> None:
         if not self.player:
             return
-        result = self.cooking_system.cook(self.player, self.player.inventory, raw_id, self._active_station_id())
+        result = self.cooking_system.start_cooking(self.player, self.player.inventory, raw_id, self._active_station_id())
         self.notifications.push(result["message"])
         if result.get("success"):
             self.particles.emit(self.player.center, color=(233, 125, 57), amount=11, speed=62, lifetime=0.5, radius=3)
@@ -720,6 +724,14 @@ class Game:
                     enemy.attack_cooldown = 1.8 if enemy.ranged else 1.2
             new_day = self.time_system.update(dt)
             self.weather_system.update(dt, new_day)
+            for result in self.cooking_system.update(dt, self.player):
+                self.notifications.push(result["message"])
+            if new_day:
+                reading = ReadingSystem().read_day_progress(self.player)
+                if reading.get("success"):
+                    self.notifications.push(reading["message"])
+                    for reward in reading.get("rewards", []):
+                        self.notifications.push(reward)
             reveal_radius = 170 + self.player.skills.exploration_radius_bonus()
             if self.player.class_id == "explorer":
                 reveal_radius += 48
@@ -1131,6 +1143,17 @@ class Game:
             y += 48
         if not craft_recipes:
             draw_text(self.screen, "Sem preparos liberados nesta estacao.", (panel.x + 24, y + 8), COLORS["white"], 14)
+        task_y = panel.bottom - 112
+        if self.cooking_system.tasks:
+            draw_text(self.screen, "Em preparo", (panel.x + 24, task_y), COLORS["accent"], 15, bold=True)
+            task = self.cooking_system.tasks[0]
+            progress = 1 - max(0, task.remaining_time) / max(0.1, task.total_time)
+            bar = pygame.Rect(panel.x + 120, task_y + 2, 220, 12)
+            pygame.draw.rect(self.screen, (49, 54, 49), bar, border_radius=4)
+            fill = bar.copy()
+            fill.width = max(1, int(bar.width * progress))
+            pygame.draw.rect(self.screen, (233, 125, 57), fill, border_radius=4)
+            draw_text(self.screen, f"{ITEMS[task.result_item_id]['name']} {max(0, task.remaining_time):.1f}s", (bar.right + 12, task_y - 2), COLORS["white"], 13)
         close = Button((panel.centerx - 70, panel.bottom - 48, 140, 34), "Fechar", "close_cooking")
         close.draw(self.screen)
         self.cooking_buttons.append(close)
@@ -1516,6 +1539,7 @@ class Game:
             "time": self.time_system.to_dict(),
             "weather": self.weather_system.to_dict(),
             "shop": self.shop_system.to_dict(),
+            "cooking": self.cooking_system.to_dict(),
             "quests": self.quest_system.to_dict(),
             "enemies": [
                 {
@@ -1574,7 +1598,7 @@ class Game:
         self.particles = ParticleManager()
         self.combat_system = CombatSystem()
         self.consumable_system = ConsumableSystem()
-        self.cooking_system = CookingSystem()
+        self.cooking_system = CookingSystem.from_dict(data.get("cooking", {}))
         self.drop_system = DropSystem(self._rng)
         self.npcs = []
         for raw in data.get("npcs", []):

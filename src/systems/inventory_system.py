@@ -123,6 +123,9 @@ class Inventory:
     def can_accept_item(self, item_id: str, quantity: int = 1) -> bool:
         return self.free_space_for(item_id) >= quantity
 
+    def can_add_item(self, item_id: str, quantity: int = 1) -> bool:
+        return self.can_accept_item(item_id, quantity)
+
     def add_slot(self, incoming: InventorySlot) -> bool:
         slot = incoming.clone()
         data = ITEMS.get(slot.item_id, {})
@@ -158,6 +161,31 @@ class Inventory:
                 if remaining <= 0:
                     return True
         return True
+
+    def has_item(self, item_id: str, quantity: int = 1) -> bool:
+        return self.count(item_id) >= quantity
+
+    def get_quantity(self, item_id: str) -> int:
+        return self.count(item_id)
+
+    def find_slots_by_item(self, item_id: str) -> list[int]:
+        return [
+            index
+            for index, slot in enumerate(self.slots)
+            if slot and slot.item_id == item_id
+        ]
+
+    def list_items(self) -> list[dict]:
+        return [
+            {
+                "slot": index,
+                "item_id": slot.item_id,
+                "quantity": slot.quantity,
+                "durability": slot.durability,
+            }
+            for index, slot in enumerate(self.slots)
+            if slot
+        ]
 
     def remove_from_slot(self, index: int, quantity: int = 1) -> InventorySlot | None:
         if index < 0 or index >= len(self.slots):

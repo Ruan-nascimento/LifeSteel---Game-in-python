@@ -194,7 +194,7 @@ class InventoryUI:
             return
         source, index = self.selected_ref
         actions = [
-            ("Usar", ("use_slot", source, index), not item.is_consumable() and not item.data.get("container_slots")),
+            ("Usar", ("use_slot", source, index), not (item.is_consumable() or item.data.get("container_slots") or item.type in {"book", "upgrade"})),
             ("Equipar", ("equip_slot", source, index), source != "main" or not (item.is_weapon_like() or item.is_building() or item.data.get("container_slots"))),
             ("Dropar", ("drop_slot", source, index), False),
         ]

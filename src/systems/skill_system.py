@@ -10,6 +10,7 @@ class Skill:
     name: str
     level: int = 1
     xp: int = 0
+    unlocked: bool = True
 
     @property
     def xp_to_next(self) -> int:
@@ -27,7 +28,7 @@ class Skill:
         return leveled
 
     def to_dict(self) -> dict:
-        return {"name": self.name, "level": self.level, "xp": self.xp}
+        return {"name": self.name, "level": self.level, "xp": self.xp, "unlocked": self.unlocked}
 
 
 class SkillTree:
@@ -41,11 +42,21 @@ class SkillTree:
 
     def add_xp(self, name: str, amount: int) -> bool:
         if name not in self.skills:
-            self.skills[name] = Skill(name)
+            self.skills[name] = Skill(name, unlocked=True)
+        self.skills[name].unlocked = True
         return self.skills[name].add_xp(amount)
 
     def level(self, name: str) -> int:
         return self.skills.get(name, Skill(name)).level
+
+    def unlock_skill(self, name: str) -> None:
+        if name not in self.skills:
+            self.skills[name] = Skill(name, level=1, xp=0, unlocked=True)
+        else:
+            self.skills[name].unlocked = True
+
+    def is_unlocked(self, name: str) -> bool:
+        return self.skills.get(name, Skill(name, unlocked=False)).unlocked
 
     def communication_discount(self) -> float:
         return min(0.25, (self.level("Comunicacao") - 1) * 0.04)
@@ -70,5 +81,6 @@ class SkillTree:
                 name=name,
                 level=int(raw.get("level", 1)),
                 xp=int(raw.get("xp", 0)),
+                unlocked=bool(raw.get("unlocked", True)),
             )
         return tree

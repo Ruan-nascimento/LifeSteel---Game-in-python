@@ -16,8 +16,14 @@ SKILL_NAMES = {
 
 STATION_NAMES = {
     "campfire": "Fogueira",
+    "campfire_basic": "Fogueira",
+    "campfire_item": "Fogueira",
     "stone_stove": "Fogao de Pedra",
+    "stone_furnace": "Fornalha de Pedra",
+    "stone_furnace_item": "Fornalha de Pedra",
     "workbench": "Bancada de Trabalho",
+    "workbench_basic": "Bancada de Trabalho",
+    "basic_workbench": "Bancada de Trabalho",
     "panela": "Panela",
     "fogao": "Fogao",
     "fogao_avancado": "Fogao Avancado",
@@ -29,11 +35,15 @@ STATION_NAMES = {
 }
 
 STATION_COMPATIBILITY = {
-    "campfire": {"campfire", "fogueira"},
+    "campfire": {"campfire", "campfire_basic", "campfire_item", "fogueira"},
     "stone_stove": {
         "campfire",
+        "campfire_basic",
+        "campfire_item",
         "fogueira",
         "stone_stove",
+        "stone_furnace",
+        "stone_furnace_item",
         "fogao",
         "panela",
         "fogao_avancado",
@@ -43,7 +53,7 @@ STATION_COMPATIBILITY = {
         "caldeirao_alquimico",
         "caldeirao_lendario",
     },
-    "workbench": {"workbench", "mesa_de_preparo"},
+    "workbench": {"workbench", "workbench_basic", "basic_workbench", "mesa_de_preparo"},
 }
 
 CATEGORY_LABELS = {

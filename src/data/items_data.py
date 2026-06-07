@@ -610,8 +610,10 @@ ITEMS = {
 
 
 from src.data.food_data import food_items, missing_ingredient_items
+from src.systems.item_system import ITEM_DATABASE
 
 
+ITEMS.update(ITEM_DATABASE.export_legacy_items())
 ITEMS.update(food_items())
 ITEMS.update(missing_ingredient_items(set(ITEMS)))
 
@@ -628,4 +630,7 @@ CATEGORIES = [
     "Recursos",
     "Construcoes",
     "Itens especiais",
+    "Livros",
+    "Utilitarios",
+    "Melhorias",
 ]

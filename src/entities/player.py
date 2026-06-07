@@ -9,6 +9,7 @@ from src.entities.entity import Entity
 from src.items.item import make_item
 from src.systems.consumable_system import ConsumableSystem
 from src.systems.inventory_system import Inventory, InventorySlot
+from src.systems.item_system import ItemSystem
 from src.systems.level_system import LevelSystem
 from src.systems.skill_system import SkillTree
 
@@ -52,6 +53,14 @@ class Player(Entity):
         self.moved_this_frame = False
         self.is_running = False
         self.equipped_backpack_slot: int | None = None
+        self.equipped_items: dict[str, str | None] = {"hand": None}
+        self.read_books: set[str] = set()
+        self.current_reading: dict | None = None
+        self.unlocked_recipes: set[str] = set()
+        self.unlocked_abilities: set[str] = set()
+        self.passive_bonuses: dict[str, int | float] = {}
+        self.passive_bonus_sources: set[str] = set()
+        self.upgrades_applied: set[str] = set()
         self._zero_need_damage_timer = 0.0
         self.last_consumable_result: dict | None = None
         self._give_starting_items()
@@ -160,6 +169,9 @@ class Player(Entity):
 
     def equipped_item(self):
         return self.inventory.selected_item()
+
+    def passive_bonus(self, key: str, default: int | float = 0):
+        return self.passive_bonuses.get(key, default)
 
     @property
     def health(self) -> float:
@@ -306,6 +318,7 @@ class Player(Entity):
         return self.use_inventory_slot(self.inventory, index)
 
     def use_inventory_slot(self, inventory: Inventory, index: int) -> bool:
+        self.last_consumable_result = None
         if index < 0 or index >= inventory.capacity:
             return False
         slot = inventory.slots[index]
@@ -316,9 +329,14 @@ class Player(Entity):
             if inventory is self.inventory:
                 return self.equip_backpack(index)
             return False
+        if item.type in {"book", "upgrade"}:
+            self.last_consumable_result = ItemSystem().use_item(self, inventory, item.item_id, index)
+            return bool(self.last_consumable_result.get("success"))
         if not item.is_consumable():
             if inventory is self.inventory:
                 self.inventory.selected_slot = index
+                self.equipped_items["hand"] = item.item_id
+            self.last_consumable_result = {"success": True, "message": "Item equipado."}
             return True
         self.last_consumable_result = ConsumableSystem().consume(self, inventory, item.item_id, index)
         if not self.last_consumable_result["success"]:
@@ -391,6 +409,14 @@ class Player(Entity):
             "inventory": self.inventory.to_list(),
             "selected_slot": self.inventory.selected_slot,
             "equipped_backpack_slot": self.equipped_backpack_slot,
+            "equipped_items": self.equipped_items,
+            "read_books": sorted(self.read_books),
+            "current_reading": self.current_reading,
+            "unlocked_recipes": sorted(self.unlocked_recipes),
+            "unlocked_abilities": sorted(self.unlocked_abilities),
+            "passive_bonuses": self.passive_bonuses,
+            "passive_bonus_sources": sorted(self.passive_bonus_sources),
+            "upgrades_applied": sorted(self.upgrades_applied),
             "level": self.level.to_dict(),
             "skills": self.skills.to_dict(),
         }
@@ -413,6 +439,14 @@ class Player(Entity):
         player.inventory.selected_slot = int(data.get("selected_slot", 0))
         equipped_backpack_slot = data.get("equipped_backpack_slot")
         player.equipped_backpack_slot = int(equipped_backpack_slot) if equipped_backpack_slot is not None else None
+        player.equipped_items = dict(data.get("equipped_items", {"hand": None}))
+        player.read_books = set(data.get("read_books", []))
+        player.current_reading = data.get("current_reading")
+        player.unlocked_recipes = set(data.get("unlocked_recipes", []))
+        player.unlocked_abilities = set(data.get("unlocked_abilities", []))
+        player.passive_bonuses = dict(data.get("passive_bonuses", {}))
+        player.passive_bonus_sources = set(data.get("passive_bonus_sources", []))
+        player.upgrades_applied = set(data.get("upgrades_applied", []))
         player.level = LevelSystem.from_dict(data.get("level", {}))
         player.skills = SkillTree.from_dict(data.get("skills", {}))
         return player

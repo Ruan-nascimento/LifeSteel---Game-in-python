@@ -10,8 +10,8 @@ class NotificationUI:
     def __init__(self) -> None:
         self.messages: list[dict] = []
 
-    def push(self, text: str, duration: float = 3.2) -> None:
-        self.messages.append({"text": text, "timer": duration, "duration": duration})
+    def push(self, text: str, color=None, duration: float = 3.2) -> None:
+        self.messages.append({"text": text, "timer": duration, "duration": duration, "color": color or COLORS["white"]})
         self.messages = self.messages[-6:]
 
     def update(self, dt: float) -> None:
@@ -29,5 +29,5 @@ class NotificationUI:
             panel = pygame.Surface((width, 28), pygame.SRCALPHA)
             pygame.draw.rect(panel, (*COLORS["panel_dark"], min(210, alpha)), panel.get_rect(), border_radius=5)
             surface.blit(panel, (18, y))
-            draw_text(surface, text, (30, y + 6), COLORS["white"], Settings.UI_SMALL_FONT_SIZE, bold=True)
+            draw_text(surface, text, (30, y + 6), message.get("color", COLORS["white"]), Settings.UI_SMALL_FONT_SIZE, bold=True)
             y += 32
