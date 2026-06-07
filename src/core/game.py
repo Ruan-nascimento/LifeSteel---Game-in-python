@@ -24,6 +24,7 @@ from src.systems.building_system import BUILDING_COSTS, BuildingSystem
 from src.systems.combat_system import CombatSystem
 from src.systems.crafting_system import CraftingSystem
 from src.systems.economy_system import EconomySystem
+from src.systems.inventory_system import Inventory, InventorySlot
 from src.systems.map_exploration_system import MapExplorationSystem
 from src.systems.particle_system import ParticleManager
 from src.systems.quest_system import QuestSystem
@@ -92,6 +93,10 @@ class Game:
         self.build_buttons: list[Button] = []
         self.craft_buttons: list[Button] = []
         self.cooking_buttons: list[Button] = []
+        self.chest_buttons: list[Button] = []
+        self.chest_slot_rects: dict[tuple[str, int], pygame.Rect] = {}
+        self.chest_selected_ref: tuple[str, int] | None = ("main", 0)
+        self.chest_dragging_ref: tuple[str, int] | None = None
         self.selected_recipe_id: str | None = None
         self.craft_search = ""
         self.active_structure = None
@@ -179,11 +184,15 @@ class Game:
             self._handle_crafting_event(event)
         elif self.active_panel == "cooking":
             self._handle_cooking_event(event)
+        elif self.active_panel == "chest":
+            self._handle_chest_event(event)
 
         if event.type == pygame.KEYDOWN:
             self._handle_playing_key(event.key)
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.active_panel is None:
             mouse_world = self.camera.screen_to_world(event.pos)
+            if self._try_break_chest(mouse_world):
+                return
             if self._try_open_structure_by_click(mouse_world):
                 return
             if not self._try_fishing(mouse_world):
@@ -235,10 +244,7 @@ class Game:
         elif key == pygame.K_TAB:
             self._cycle_panel()
         elif key == pygame.K_q:
-            if self.player.use_quick_apple():
-                self.notifications.push("Maca consumida: +15 HP.")
-            else:
-                self.notifications.push("Sem macas no inventario.")
+            self._use_equipped_consumable()
         elif key == pygame.K_f:
             self._pickup_drops()
         elif key == pygame.K_e and self.active_panel is None:
@@ -251,6 +257,21 @@ class Game:
         order = [None, "inventory", "character", "skills", "map"]
         current_index = order.index(self.active_panel) if self.active_panel in order else 0
         self.active_panel = order[(current_index + 1) % len(order)]
+
+    def _use_equipped_consumable(self) -> None:
+        if not self.player:
+            return
+        slot_index = self.player.inventory.selected_slot
+        slot = self.player.inventory.selected()
+        if not slot:
+            self.notifications.push("Nenhum item consumivel equipado.")
+            return
+        item = slot.item
+        if not item.is_consumable():
+            self.notifications.push("Item equipado nao e consumivel.")
+            return
+        if self.player.use_slot(slot_index):
+            self.notifications.push(f"Consumiu 1 {item.name}.")
 
     def _handle_inventory_action(self, action) -> None:
         if not action or not self.player or not self.world:
@@ -298,11 +319,43 @@ class Game:
             slots = self.player.backpack_contents()
             if slots is None:
                 return None
-            temp = type(self.player.inventory)(len(slots))
+            temp = Inventory(len(slots))
+            temp.slots = slots
+            temp.capacity = len(slots)
+            return temp
+        if source == "chest":
+            slots = self._active_chest_contents()
+            if slots is None:
+                return None
+            temp = Inventory(len(slots))
             temp.slots = slots
             temp.capacity = len(slots)
             return temp
         return None
+
+    def _active_chest_contents(self) -> list[InventorySlot | None] | None:
+        return self._structure_chest_contents(self.active_structure)
+
+    def _structure_chest_contents(self, structure) -> list[InventorySlot | None] | None:
+        if not structure or structure.interface_kind() != "chest":
+            return None
+        if structure.state is None:
+            structure.state = {}
+        capacity = 12
+        contents = structure.state.get("contents")
+        if contents is None:
+            contents = [None for _ in range(capacity)]
+        else:
+            contents = list(contents)
+            for index, slot in enumerate(contents):
+                if isinstance(slot, dict):
+                    contents[index] = InventorySlot.from_dict(slot)
+            if len(contents) < capacity:
+                contents.extend([None for _ in range(capacity - len(contents))])
+            elif len(contents) > capacity:
+                contents = contents[:capacity]
+        structure.state["contents"] = contents
+        return contents
 
     def _move_between_inventories(self, from_source: str, from_index: int, to_source: str, to_index: int) -> None:
         if not self.player:
@@ -416,6 +469,42 @@ class Game:
                 elif isinstance(action, tuple) and action[0] == "cook":
                     self._cook_item(action[1])
 
+    def _handle_chest_event(self, event) -> None:
+        if not self.player:
+            return
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            for button in self.chest_buttons:
+                action = button.handle_event(event)
+                if not action:
+                    continue
+                if action == "close_chest":
+                    self.active_panel = None
+                    self.active_structure = None
+                else:
+                    self._handle_inventory_action(action)
+                return
+            for ref, rect in self.chest_slot_rects.items():
+                if rect.collidepoint(event.pos):
+                    self.chest_selected_ref = ref
+                    self.chest_dragging_ref = ref
+                    return
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.chest_dragging_ref:
+            target = self._chest_slot_at(event.pos)
+            source = self.chest_dragging_ref
+            self.chest_dragging_ref = None
+            if target and target != source:
+                self.chest_selected_ref = target
+                self._move_between_inventories(source[0], source[1], target[0], target[1])
+        if event.type == pygame.MOUSEMOTION:
+            for button in self.chest_buttons:
+                button.handle_event(event)
+
+    def _chest_slot_at(self, pos) -> tuple[str, int] | None:
+        for ref, rect in self.chest_slot_rects.items():
+            if rect.collidepoint(pos):
+                return ref
+        return None
+
     def _cook_item(self, raw_id: str) -> None:
         if not self.player:
             return
@@ -520,7 +609,7 @@ class Game:
     def _update_playing(self, dt: float) -> None:
         if not all([self.player, self.world, self.camera, self.exploration]):
             return
-        blocked = self.active_panel in {"inventory", "shop", "character", "skills", "map", "pause", "building", "crafting", "cooking", "dialogue"}
+        blocked = self.active_panel in {"inventory", "shop", "character", "skills", "map", "pause", "building", "crafting", "cooking", "chest", "dialogue"}
         if not blocked:
             self.player.update(dt, self.input, self.world, self.weather_system, self.particles)
             self.world.update(dt)
@@ -672,6 +761,8 @@ class Game:
             self._draw_crafting_panel()
         elif self.active_panel == "cooking":
             self._draw_cooking_panel()
+        elif self.active_panel == "chest":
+            self._draw_chest_panel()
         elif self.active_panel == "dialogue":
             self.dialogue_ui.draw(self.screen)
 
@@ -840,7 +931,7 @@ class Game:
             elif building in {"torch", "campfire"}:
                 lines.append("Ilumina a area ao redor durante a noite.")
             elif building in {"chest", "small_chest"}:
-                lines.append("Objeto de armazenamento para expansao de base.")
+                lines.append("Guarda itens, abre com E e pode ser quebrado com machado.")
         elif data.get("type") in {"weapon", "tool"}:
             lines.append("Pode ser equipado na hotbar para combate, coleta ou interacao.")
             if data.get("tool_type"):
@@ -885,9 +976,146 @@ class Game:
         close.draw(self.screen)
         self.cooking_buttons.append(close)
 
+    def _draw_chest_panel(self) -> None:
+        if not self.player:
+            return
+        contents = self._active_chest_contents()
+        if contents is None:
+            self.active_panel = None
+            self.active_structure = None
+            return
+        width = min(1100, self.screen.get_width() - 48)
+        height = min(620, self.screen.get_height() - 44)
+        panel = pygame.Rect(self.screen.get_width() // 2 - width // 2, self.screen.get_height() // 2 - height // 2, width, height)
+        draw_panel(self.screen, panel, "Bau Pequeno")
+        self.chest_buttons = []
+        self.chest_slot_rects = {}
+
+        left_x = panel.x + 24
+        chest_x = panel.x + 390
+        details = pygame.Rect(panel.right - 330, panel.y + 84, 306, panel.height - 142)
+        main_used = sum(1 for slot in self.player.inventory.slots if slot)
+        chest_used = sum(1 for slot in contents if slot)
+        draw_text(self.screen, f"Inventario: {main_used}/{self.player.inventory.capacity}", (left_x, panel.y + 50), COLORS["white"], 14)
+        draw_text(self.screen, "Hotbar", (left_x, panel.y + 82), COLORS["accent"], 16, bold=True)
+        self._draw_chest_grid(self.screen, self.player.inventory.slots[:5], "main", 0, left_x, panel.y + 108, 5)
+        draw_text(self.screen, "Inventario", (left_x, panel.y + 176), COLORS["accent"], 16, bold=True)
+        self._draw_chest_grid(self.screen, self.player.inventory.slots[5:], "main", 5, left_x, panel.y + 202, 5)
+
+        backpack_slots = self.player.backpack_contents()
+        backpack_y = panel.y + 406
+        draw_text(self.screen, "Mochila", (left_x, backpack_y - 26), COLORS["accent"], 16, bold=True)
+        if backpack_slots is not None:
+            used = sum(1 for slot in backpack_slots if slot)
+            draw_text(self.screen, f"{used}/{len(backpack_slots)}", (left_x + 94, backpack_y - 22), COLORS["white"], 13)
+            self._draw_chest_grid(self.screen, backpack_slots, "backpack", 0, left_x, backpack_y, 4)
+        else:
+            empty = pygame.Rect(left_x, backpack_y, 262, 74)
+            pygame.draw.rect(self.screen, COLORS["panel_dark"], empty, border_radius=6)
+            pygame.draw.rect(self.screen, (71, 82, 76), empty, 1, border_radius=6)
+            draw_wrapped(self.screen, "Sem mochila equipada.", empty.inflate(-14, -14), COLORS["white"], 13)
+
+        draw_text(self.screen, f"Bau: {chest_used}/{len(contents)}", (chest_x, panel.y + 50), COLORS["white"], 14)
+        draw_text(self.screen, "Armazenamento", (chest_x, panel.y + 82), COLORS["accent"], 16, bold=True)
+        self._draw_chest_grid(self.screen, contents, "chest", 0, chest_x, panel.y + 108, 4)
+
+        self._draw_chest_details(details)
+        close = Button((panel.centerx - 70, panel.bottom - 46, 140, 34), "Fechar", "close_chest")
+        close.draw(self.screen)
+        self.chest_buttons.append(close)
+
+    def _draw_chest_grid(self, surface, slots, source: str, start_index: int, x: int, y: int, columns: int) -> None:
+        slot_size = 52
+        gap = 8
+        rows = max(1, (len(slots) + columns - 1) // columns)
+        for local_index in range(len(slots)):
+            col = local_index % columns
+            row = local_index // columns
+            rect = pygame.Rect(x + col * (slot_size + gap), y + row * (slot_size + gap), slot_size, slot_size)
+            absolute_index = start_index + local_index
+            ref = (source, absolute_index)
+            self.chest_slot_rects[ref] = rect
+            selected = self.chest_selected_ref == ref
+            slot = slots[local_index]
+            pygame.draw.rect(surface, (64, 76, 70) if selected else COLORS["panel_dark"], rect, border_radius=6)
+            border = COLORS["accent"] if selected else (75, 85, 78)
+            if source == "main" and absolute_index == self.player.inventory.selected_slot:
+                border = (235, 218, 120)
+            if source == "main" and absolute_index == self.player.equipped_backpack_slot:
+                border = (105, 190, 230)
+            pygame.draw.rect(surface, border, rect, 2, border_radius=6)
+            if source == "main" and absolute_index < 5:
+                draw_text(surface, str(absolute_index + 1), (rect.x + 5, rect.y + 3), (187, 194, 183), 11, bold=True)
+            if slot:
+                icon = self.assets.item_icon(slot.item_id, 34)
+                surface.blit(icon, (rect.centerx - 17, rect.centery - 17))
+                if slot.quantity > 1:
+                    draw_text(surface, str(slot.quantity), (rect.right - 18, rect.bottom - 18), COLORS["white"], 12, bold=True)
+                if slot.is_container() and slot.contents is not None:
+                    used = sum(1 for content in slot.contents if content)
+                    draw_text(surface, str(used), (rect.x + 5, rect.bottom - 17), (105, 190, 230), 11, bold=True)
+        total_width = columns * slot_size + (columns - 1) * gap
+        total_height = rows * slot_size + (rows - 1) * gap
+        pygame.draw.rect(surface, (48, 56, 52), (x - 6, y - 6, total_width + 12, total_height + 12), 1, border_radius=8)
+
+    def _draw_chest_details(self, details: pygame.Rect) -> None:
+        pygame.draw.rect(self.screen, COLORS["panel_dark"], details, border_radius=6)
+        pygame.draw.rect(self.screen, (75, 86, 80), details, 1, border_radius=6)
+        slot = self._selected_chest_slot()
+        if not slot:
+            draw_text(self.screen, "Nenhum item selecionado.", (details.x + 18, details.y + 18), COLORS["white"], 16)
+            return
+        item = slot.item
+        self.screen.blit(self.assets.item_icon(item.item_id, 48), (details.x + 18, details.y + 18))
+        draw_text(self.screen, item.name, (details.x + 78, details.y + 18), COLORS["accent"], 18, bold=True)
+        draw_text(self.screen, f"{item.category} | Qtd: {slot.quantity}", (details.x + 78, details.y + 44), COLORS["white"], 13)
+        draw_wrapped(self.screen, item.description, pygame.Rect(details.x + 18, details.y + 86, details.width - 36, 116), COLORS["white"], 14)
+        y = details.y + 218
+        if slot.is_container():
+            contents = slot.ensure_contents()
+            used = sum(1 for content in contents if content)
+            draw_text(self.screen, f"Espaco interno: {used}/{len(contents)}", (details.x + 18, y), (105, 190, 230), 14, bold=True)
+            y += 24
+        if item.tool_type:
+            draw_text(self.screen, f"Ferramenta: {item.tool_type}", (details.x + 18, y), COLORS["white"], 14)
+            y += 24
+        if item.is_weapon_like():
+            draw_text(self.screen, f"Dano {item.damage} | Alcance {item.range}", (details.x + 18, y), COLORS["white"], 14)
+        self._draw_chest_action_buttons(details, item)
+
+    def _selected_chest_slot(self) -> InventorySlot | None:
+        if not self.chest_selected_ref:
+            return None
+        source, index = self.chest_selected_ref
+        inventory = self._inventory_for_source(source)
+        if inventory and 0 <= index < inventory.capacity:
+            return inventory.slots[index]
+        return None
+
+    def _draw_chest_action_buttons(self, details: pygame.Rect, item) -> None:
+        if not self.chest_selected_ref:
+            return
+        source, index = self.chest_selected_ref
+        can_equip = source == "main" and (item.is_weapon_like() or item.is_building() or item.data.get("container_slots"))
+        actions = [
+            ("Usar", ("use_slot", source, index), not item.is_consumable()),
+            ("Equipar", ("equip_slot", source, index), not can_equip),
+            ("Dropar", ("drop_slot", source, index), False),
+        ]
+        x = details.x + 18
+        y = details.bottom - 48
+        for label, action, disabled in actions:
+            button = Button((x, y, 86, 32), label, action, disabled)
+            button.draw(self.screen)
+            self.chest_buttons.append(button)
+            x += 96
+
     def _interaction_text(self) -> str | None:
         if not self.player or not self.world:
             return None
+        equipped = self.player.equipped_item()
+        if equipped and equipped.item_id == "empty_cup" and self.world.is_water_near(self.player.center, 58):
+            return "E - encher copo vazio"
         drops = [drop for drop in self.world.drops if drop.pos.distance_to(self.player.center) <= 42]
         if drops:
             return "F - pegar item do chao"
@@ -902,6 +1130,8 @@ class Game:
                 return "E/clique - abrir bancada de crafting"
             if structure.interface_kind() == "cooking":
                 return "E/clique - abrir fogao"
+            if structure.interface_kind() == "chest":
+                return "E/clique - abrir bau"
             return "E/clique - abrir interface"
         nearby = [node for node in self.world.resources if node.center.distance_to(self.player.center) < Settings.INTERACTION_RANGE]
         if nearby:
@@ -927,6 +1157,8 @@ class Game:
     def _interact(self) -> None:
         if not self.player:
             return
+        if self._try_fill_empty_cup():
+            return
         structure = self.world.nearby_structure_with_interface(self.player.center, 64) if self.world else None
         if structure:
             self._open_structure_interface(structure)
@@ -942,6 +1174,28 @@ class Game:
             return
         self.notifications.push("Nada proximo para interagir.")
 
+    def _try_fill_empty_cup(self) -> bool:
+        if not self.player or not self.world:
+            return False
+        slot_index = self.player.inventory.selected_slot
+        slot = self.player.inventory.selected()
+        if not slot or slot.item_id != "empty_cup":
+            return False
+        if not self.world.is_water_near(self.player.center, 58):
+            self.notifications.push("Chegue perto de um rio ou lago para encher o copo.")
+            return True
+        removed = self.player.inventory.remove_from_slot(slot_index, 1)
+        if not removed:
+            return False
+        leftover = self.player.add_item("water_cup", 1)
+        if leftover:
+            self.player.add_item("empty_cup", 1)
+            self.notifications.push("Inventario cheio para encher o copo.")
+            return True
+        self.particles.emit(self.player.center, color=COLORS["water"], amount=10, speed=55, lifetime=0.45, radius=3)
+        self.notifications.push("Copo cheio com agua.")
+        return True
+
     def _try_open_structure_by_click(self, mouse_world) -> bool:
         if not self.player or not self.world:
             return False
@@ -949,6 +1203,39 @@ class Game:
         if not structure or not structure.has_interface():
             return False
         self._open_structure_interface(structure)
+        return True
+
+    def _try_break_chest(self, mouse_world) -> bool:
+        if not self.player or not self.world:
+            return False
+        item = self.player.equipped_item()
+        if not item or item.tool_type != "axe":
+            return False
+        structure = self.world.structure_at_point(mouse_world, self.player.center, max(78, item.range + 28))
+        if not structure or structure.interface_kind() != "chest":
+            return False
+        if self.player.attack_timer > 0:
+            return True
+        if self.player.energy < item.energy_cost:
+            self.notifications.push("Energia insuficiente para quebrar o bau.")
+            return True
+
+        self.player.energy = max(0, self.player.energy - item.energy_cost)
+        self.player.attack_timer = max(Settings.ATTACK_COOLDOWN, float(item.data.get("speed", 0.45)))
+        self.player.set_attack_direction(mouse_world)
+        drop_pos = pygame.Vector2(structure.rect.center)
+        for slot in self._structure_chest_contents(structure) or []:
+            if slot:
+                self.world.spawn_ground_drop(drop_pos, slot.item_id, slot.quantity, contents=slot.contents)
+        self.world.spawn_ground_drop(drop_pos, "small_chest", 1)
+        if structure in self.world.structures:
+            self.world.structures.remove(structure)
+        if self.active_structure is structure:
+            self.active_structure = None
+            self.active_panel = None
+        self.player.skills.add_xp("Construcao", 3)
+        self.particles.emit(drop_pos, color=ITEMS["small_chest"].get("icon_color", COLORS["accent"]), amount=14, speed=80, lifetime=0.55, radius=3)
+        self.notifications.push("Bau quebrado. Conteudo dropado.")
         return True
 
     def _open_structure_interface(self, structure) -> None:
@@ -962,7 +1249,9 @@ class Game:
         elif interface == "cooking":
             self.active_panel = "cooking"
         elif interface == "chest":
-            self.notifications.push("Bau detectado. Interface de bau fica para a proxima expansao.")
+            self._structure_chest_contents(structure)
+            self.active_panel = "chest"
+            self.chest_selected_ref = ("chest", 0)
 
     def _try_place_equipped_building(self, mouse_world) -> bool:
         if not self.player or not self.world:

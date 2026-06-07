@@ -76,7 +76,7 @@ CONTROL_HELP = [
     "I inventario",
     "C status",
     "M mapa",
-    "Q maca",
+    "Q consumir",
     "B construir",
     "K skills",
     "F5 salvar",

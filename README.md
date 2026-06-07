@@ -21,7 +21,7 @@ O projeto usa `pygame-ce>=2.5,<3`. No PyPI, a linha 2.5.x e a linha estavel atua
 - `I`: inventario
 - `C`: status/personagem
 - `M`: mapa expandido
-- `Q`: consumir maca rapida
+- `Q`: consumir 1 unidade do item consumivel equipado
 - `F`: pegar item do chao
 - `B`: menu de construcao por materiais
 - `K`: arvore de habilidades
@@ -39,21 +39,25 @@ O projeto usa `pygame-ce>=2.5,<3`. No PyPI, a linha 2.5.x e a linha estavel atua
 - HUD com HP, XP, fome, sede, energia, mana, moedas, relogio, clima, hotbar e minimapa.
 - Inventario com slots, hotbar, descricao, usar, equipar, dropar e drag-and-drop.
 - Mochila equipavel com inventario lateral; se for dropada, o conteudo continua dentro dela.
-- Macas iniciais e consumo por `Q`.
+- Consumo por `Q` do item consumivel equipado, sempre 1 unidade por vez.
 - Coleta com ferramentas: arvores, pedras, minerio, arbustos e solo.
 - NPC vendedor fisico no mapa; loja abre apenas por proximidade.
 - Precos com desconto por Comunicacao e bonus de venda por Comercio/Politica.
 - XP geral, level, skills individuais e desbloqueios de loja/crafting.
 - Sete tipos de monstros com nome, nivel, bioma, escalonamento de HP/dano e alguns ataques a distancia.
 - Animais iniciais: porcos, vacas e galinhas, com drops de carne, couro, pele, penas e ovos.
-- Sistema de fome/sede ajustado: fome cai 1 a cada 10s, sede 1 a cada 15s, corrida acelera consumo e fica bloqueada abaixo de 30%.
+- Sistema de fome/sede ajustado: fome cai 1 a cada 10s; sede cai 2 a cada 10s e 5 a cada 10s correndo.
+- Corrida fica bloqueada se fome ou sede estiverem abaixo de 30%.
+- Loja vende Copo de Agua barato, que recupera 15 de sede, e Copo Vazio.
+- Copo Vazio pode ser equipado e enchido com `E` perto de rios ou lagos.
 - Morte real: ao chegar a 0 HP, o jogador dropa os itens no chao, volta ao spawn e recebe mensagem "Voce morreu".
 - Particulas para coleta, impacto, corrida, magia e coleta de itens.
 - Crafting em grade: mostra todas as receitas liberadas, com ficha lateral de materiais, uso e botao Criar.
 - Crafting bloqueia corretamente se faltar material ou se inventario/mochila estiver cheio.
 - Bancada inicial perto do spawn para comecar a craftar imediatamente.
 - Construcoes equipaveis: equipe fogueira, bancada, tocha, fogao etc. e clique com botao direito no mundo para colocar.
-- Estruturas colocadas com interface, como bancada e fogao, abrem com `E` quando o personagem esta perto.
+- Estruturas colocadas com interface, como bancada, fogao e bau, abrem com `E` quando o personagem esta perto.
+- Bau Pequeno craftavel com 12 slots, drag-and-drop com inventario/mochila, save/load do conteudo e quebra com machado dropando tudo.
 - XP de recursos rebalanceado: arvores e arbustos 1 XP, pedras 3 XP, minerios 5 XP; combate escala mais XP por nivel do inimigo.
 - Fogao de pedra com interface para assar carnes e peixes.
 - Tochas iluminam a noite e apagam durante chuva/tempestade.

@@ -30,6 +30,18 @@ SHOP_STOCK = [
         "stock": 25,
     },
     {
+        "id": "water_cup",
+        "price": 4,
+        "required_level": 1,
+        "stock": 30,
+    },
+    {
+        "id": "empty_cup",
+        "price": 2,
+        "required_level": 1,
+        "stock": 30,
+    },
+    {
         "id": "basic_seed",
         "price": 25,
         "required_level": 1,

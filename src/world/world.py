@@ -204,6 +204,28 @@ class World:
             state["contents"] = [None for _ in range(12)]
         self.structures.append(Structure(building_id, tile, state))
 
+    def _structure_state_to_dict(self, structure: Structure) -> dict | None:
+        if structure.state is None:
+            return None
+        state = dict(structure.state)
+        if "contents" in state:
+            state["contents"] = [
+                slot.to_dict() if slot else None
+                for slot in state.get("contents") or []
+            ]
+        return state
+
+    def _structure_state_from_dict(self, raw_state) -> dict | None:
+        if raw_state is None:
+            return None
+        state = dict(raw_state)
+        if "contents" in state:
+            state["contents"] = [
+                InventorySlot.from_dict(slot) if slot else None
+                for slot in state.get("contents") or []
+            ]
+        return state
+
     def structure_at_point(self, point, player_center=None, range_px: int = 72) -> Structure | None:
         point = pygame.Vector2(point)
         matches = []
@@ -336,7 +358,7 @@ class World:
                 for d in self.drops
             ],
             "structures": [
-                {"building_id": s.building_id, "tile": list(s.tile), "state": s.state}
+                {"building_id": s.building_id, "tile": list(s.tile), "state": self._structure_state_to_dict(s)}
                 for s in self.structures
             ],
         }
@@ -361,6 +383,6 @@ class World:
             for raw in data.get("drops", [])
         ]
         self.structures = [
-            Structure(raw["building_id"], tuple(raw["tile"]), raw.get("state"))
+            Structure(raw["building_id"], tuple(raw["tile"]), self._structure_state_from_dict(raw.get("state")))
             for raw in data.get("structures", [])
         ]

@@ -112,11 +112,9 @@ class Player(Entity):
 
     def _update_survival(self, dt: float) -> None:
         hunger_rate = (4 if self.is_running else 1) / 10
-        thirst_rate = (4 if self.is_running else 1) / 15
-        if self.class_id == "explorer":
-            thirst_rate *= 0.84
+        thirst_rate = (5 if self.is_running else 2) / 10
         self.hunger = max(0.0, self.hunger - hunger_rate * dt)
-        self.thirst = max(0.0, self.thirst - thirst_rate)
+        self.thirst = max(0.0, self.thirst - thirst_rate * dt)
         self.mana = min(self.max_mana, self.mana + 3.0 * dt)
         self.status_effects = []
         if self.hunger < 30:
@@ -342,14 +340,15 @@ class Player(Entity):
         surface.blit(icon, pos)
 
     def _draw_name_and_health(self, surface: pygame.Surface, camera) -> None:
-        rect = camera.apply(self.rect)
+        sprite_top = self.pos.y - 46 + 5 - camera.offset.y
+        screen_x = self.pos.x - camera.offset.x
         font = pygame.font.SysFont(Settings.UI_FONT, 12, bold=True)
         name_image = font.render(self.name, True, (242, 244, 235))
-        name_rect = name_image.get_rect(center=(rect.centerx, rect.y - 22))
+        name_rect = name_image.get_rect(center=(screen_x, sprite_top - 22))
         shadow = name_rect.move(1, 1)
         surface.blit(font.render(self.name, True, (10, 12, 11)), shadow)
         surface.blit(name_image, name_rect)
-        bar = pygame.Rect(rect.centerx - 24, rect.y - 9, 48, 5)
+        bar = pygame.Rect(int(screen_x - 24), int(sprite_top - 10), 48, 5)
         pygame.draw.rect(surface, (45, 18, 18), bar)
         fill = bar.copy()
         fill.width = max(1, int(bar.width * (self.hp / self.max_hp)))

@@ -228,7 +228,6 @@ class AssetLoader:
     def item_icon(self, item_id: str, size: int = 26) -> pygame.Surface:
         color = ITEMS.get(item_id, {}).get("icon_color", (240, 240, 240))
         surface = self._surface((size, size))
-        pygame.draw.rect(surface, (22, 25, 24), (1, 1, size - 2, size - 2), border_radius=5)
         inset = pygame.Rect(4, 4, size - 8, size - 8)
         item_type = ITEMS.get(item_id, {}).get("type")
         if item_id == "apple":
@@ -254,6 +253,12 @@ class AssetLoader:
             pygame.draw.rect(surface, color, (inset.x + 3, inset.y + 4, inset.width - 6, inset.height - 4), border_radius=4)
             pygame.draw.rect(surface, (69, 43, 25), (inset.x + 7, inset.y + 1, inset.width - 14, 7), border_radius=3)
             pygame.draw.line(surface, (230, 190, 98), (inset.x + 6, inset.centery), (inset.right - 6, inset.centery), 2)
+        elif item_id in {"water_cup", "empty_cup"}:
+            pygame.draw.rect(surface, (214, 225, 223), (inset.x + 6, inset.y + 4, inset.width - 12, inset.height - 5), border_radius=3)
+            pygame.draw.rect(surface, (72, 88, 89), (inset.x + 6, inset.y + 4, inset.width - 12, inset.height - 5), 2, border_radius=3)
+            if item_id == "water_cup":
+                pygame.draw.rect(surface, (72, 169, 224), (inset.x + 8, inset.centery, inset.width - 16, inset.height // 3), border_radius=2)
+            pygame.draw.arc(surface, (72, 88, 89), (inset.right - 8, inset.y + 8, 8, 10), -1.2, 1.2, 2)
         elif item_id in {"campfire", "torch"}:
             pygame.draw.line(surface, (96, 58, 32), (inset.x + 5, inset.bottom - 3), (inset.right - 5, inset.bottom - 9), 4)
             pygame.draw.polygon(surface, (236, 89, 45), [(inset.centerx, inset.y + 2), (inset.x + 7, inset.bottom - 5), (inset.right - 7, inset.bottom - 5)])
@@ -272,7 +277,6 @@ class AssetLoader:
             pygame.draw.polygon(surface, color, [(inset.x + 2, inset.bottom - 4), (inset.centerx, inset.y + 2), (inset.right - 2, inset.bottom - 4)])
         else:
             pygame.draw.rect(surface, color, inset, border_radius=4)
-        pygame.draw.rect(surface, (20, 22, 22), (2, 2, size - 4, size - 4), 1, border_radius=5)
         return surface
 
     def player_frame(self, class_id: str, state: str, direction: str, frame: int) -> pygame.Surface:

@@ -1,0 +1,1368 @@
+{
+  "food_system": {
+    "version": "1.0.0",
+    "game": "LifeSteel",
+    "description": "Sistema inicial de alimentos, bebidas e poções. Todos os valores positivos regeneram atributos; valores negativos reduzem atributos.",
+    "attributes": {
+      "health": "Vida",
+      "hunger": "Fome",
+      "thirst": "Sede",
+      "energy": "Energia",
+      "mana": "Mana"
+    },
+    "rules": {
+      "raw_meat": "Toda carne crua restaura 5 de vida e 5 de fome, mas reduz 5 de sede.",
+      "fruits": "Frutas sempre ajudam na sede, restaurando entre 10 e 20 pontos de sede.",
+      "rarity_balance": "Alimentos com mais benefícios possuem menor quantidade de drop ou são mais difíceis de fabricar.",
+      "potions": "Poções podem ser compradas, craftadas ou encontradas em baús raros.",
+      "mana_percent": "Quando o campo mana_percent existir, ele representa recuperação baseada na mana máxima do jogador."
+    }
+  },
+  "foods": [
+    {
+      "id": "raw_beef",
+      "name": "Carne Crua de Vaca",
+      "type": "food",
+      "category": "raw_meat",
+      "description": "Carne crua pesada. Mata um pouco a fome, mas dá sede.",
+      "effects": {
+        "health": 5,
+        "hunger": 5,
+        "thirst": -5,
+        "energy": 0,
+        "mana": 0
+      },
+      "rarity": "common",
+      "stackable": true,
+      "max_stack": 16,
+      "drop": {
+        "source": ["vaca selvagem", "baú de caçador"],
+        "min_quantity": 1,
+        "max_quantity": 3,
+        "drop_chance": 0.75
+      },
+      "buyable": false,
+      "sell_price": 8,
+      "craftable": false,
+      "cookable": true,
+      "cooks_into": "cooked_beef"
+    },
+    {
+      "id": "raw_pork",
+      "name": "Carne Crua de Porco",
+      "type": "food",
+      "category": "raw_meat",
+      "description": "Carne crua gordurosa. Recupera pouco, mas pode ser assada.",
+      "effects": {
+        "health": 5,
+        "hunger": 5,
+        "thirst": -5,
+        "energy": 0,
+        "mana": 0
+      },
+      "rarity": "common",
+      "stackable": true,
+      "max_stack": 16,
+      "drop": {
+        "source": ["javali", "porco selvagem"],
+        "min_quantity": 1,
+        "max_quantity": 3,
+        "drop_chance": 0.7
+      },
+      "buyable": false,
+      "sell_price": 7,
+      "craftable": false,
+      "cookable": true,
+      "cooks_into": "cooked_pork"
+    },
+    {
+      "id": "raw_chicken",
+      "name": "Carne Crua de Galinha",
+      "type": "food",
+      "category": "raw_meat",
+      "description": "Carne leve e fácil de cozinhar.",
+      "effects": {
+        "health": 5,
+        "hunger": 5,
+        "thirst": -5,
+        "energy": 0,
+        "mana": 0
+      },
+      "rarity": "common",
+      "stackable": true,
+      "max_stack": 16,
+      "drop": {
+        "source": ["galinha", "ave selvagem"],
+        "min_quantity": 1,
+        "max_quantity": 2,
+        "drop_chance": 0.8
+      },
+      "buyable": false,
+      "sell_price": 6,
+      "craftable": false,
+      "cookable": true,
+      "cooks_into": "cooked_chicken"
+    },
+    {
+      "id": "cooked_beef",
+      "name": "Carne Assada de Vaca",
+      "type": "food",
+      "category": "cooked_meat",
+      "description": "Carne assada nutritiva, ótima para recuperar fome e vida.",
+      "effects": {
+        "health": 12,
+        "hunger": 20,
+        "thirst": 0,
+        "energy": 5,
+        "mana": 0
+      },
+      "rarity": "uncommon",
+      "stackable": true,
+      "max_stack": 12,
+      "drop": {
+        "source": ["cozinhar carne crua de vaca"],
+        "min_quantity": 1,
+        "max_quantity": 1,
+        "drop_chance": 1.0
+      },
+      "buyable": true,
+      "shop": {
+        "seller": "cozinheiro",
+        "required_level": 2,
+        "price": 35
+      },
+      "sell_price": 17,
+      "craftable": false,
+      "cookable": false
+    },
+    {
+      "id": "cooked_pork",
+      "name": "Carne Assada de Porco",
+      "type": "food",
+      "category": "cooked_meat",
+      "description": "Carne saborosa e boa para recuperar fome.",
+      "effects": {
+        "health": 10,
+        "hunger": 15,
+        "thirst": 0,
+        "energy": 4,
+        "mana": 0
+      },
+      "rarity": "uncommon",
+      "stackable": true,
+      "max_stack": 12,
+      "drop": {
+        "source": ["cozinhar carne crua de porco"],
+        "min_quantity": 1,
+        "max_quantity": 1,
+        "drop_chance": 1.0
+      },
+      "buyable": true,
+      "shop": {
+        "seller": "cozinheiro",
+        "required_level": 2,
+        "price": 28
+      },
+      "sell_price": 14,
+      "craftable": false,
+      "cookable": false
+    },
+    {
+      "id": "cooked_chicken",
+      "name": "Galinha Assada",
+      "type": "food",
+      "category": "cooked_meat",
+      "description": "Comida leve, simples e confiável.",
+      "effects": {
+        "health": 8,
+        "hunger": 13,
+        "thirst": 0,
+        "energy": 3,
+        "mana": 0
+      },
+      "rarity": "uncommon",
+      "stackable": true,
+      "max_stack": 12,
+      "drop": {
+        "source": ["cozinhar carne crua de galinha"],
+        "min_quantity": 1,
+        "max_quantity": 1,
+        "drop_chance": 1.0
+      },
+      "buyable": true,
+      "shop": {
+        "seller": "cozinheiro",
+        "required_level": 1,
+        "price": 24
+      },
+      "sell_price": 12,
+      "craftable": false,
+      "cookable": false
+    },
+    {
+      "id": "apple",
+      "name": "Maçã",
+      "type": "food",
+      "category": "fruit",
+      "description": "Fruta comum. Recupera um pouco de vida, fome e sede.",
+      "effects": {
+        "health": 15,
+        "hunger": 8,
+        "thirst": 10,
+        "energy": 2,
+        "mana": 0
+      },
+      "rarity": "common",
+      "stackable": true,
+      "max_stack": 20,
+      "drop": {
+        "source": ["árvore comum", "baú simples"],
+        "min_quantity": 1,
+        "max_quantity": 4,
+        "drop_chance": 0.65
+      },
+      "buyable": true,
+      "shop": {
+        "seller": "vendedor geral",
+        "required_level": 1,
+        "price": 15
+      },
+      "sell_price": 5,
+      "craftable": false
+    },
+    {
+      "id": "berry",
+      "name": "Frutinhas Silvestres",
+      "type": "food",
+      "category": "fruit",
+      "description": "Pequenas frutas encontradas em arbustos.",
+      "effects": {
+        "health": 3,
+        "hunger": 5,
+        "thirst": 12,
+        "energy": 3,
+        "mana": 0
+      },
+      "rarity": "common",
+      "stackable": true,
+      "max_stack": 30,
+      "drop": {
+        "source": ["arbusto de frutas"],
+        "min_quantity": 2,
+        "max_quantity": 6,
+        "drop_chance": 0.8
+      },
+      "buyable": false,
+      "sell_price": 2,
+      "craftable": false
+    },
+    {
+      "id": "watermelon_slice",
+      "name": "Fatia de Melancia",
+      "type": "food",
+      "category": "fruit",
+      "description": "Muito hidratante, mas não sustenta tanto.",
+      "effects": {
+        "health": 4,
+        "hunger": 6,
+        "thirst": 20,
+        "energy": 2,
+        "mana": 0
+      },
+      "rarity": "uncommon",
+      "stackable": true,
+      "max_stack": 12,
+      "drop": {
+        "source": ["plantação de melancia", "fazenda"],
+        "min_quantity": 2,
+        "max_quantity": 5,
+        "drop_chance": 0.5
+      },
+      "buyable": true,
+      "shop": {
+        "seller": "agricultor",
+        "required_level": 2,
+        "price": 20
+      },
+      "sell_price": 8,
+      "craftable": false
+    },
+    {
+      "id": "orange",
+      "name": "Laranja Solar",
+      "type": "food",
+      "category": "fruit",
+      "description": "Fruta cítrica que recupera sede e energia.",
+      "effects": {
+        "health": 5,
+        "hunger": 7,
+        "thirst": 16,
+        "energy": 8,
+        "mana": 0
+      },
+      "rarity": "uncommon",
+      "stackable": true,
+      "max_stack": 16,
+      "drop": {
+        "source": ["laranjeira", "mercado agrícola"],
+        "min_quantity": 1,
+        "max_quantity": 3,
+        "drop_chance": 0.45
+      },
+      "buyable": true,
+      "shop": {
+        "seller": "agricultor",
+        "required_level": 2,
+        "price": 22
+      },
+      "sell_price": 9,
+      "craftable": false
+    },
+    {
+      "id": "mana_grape",
+      "name": "Uva Arcana",
+      "type": "food",
+      "category": "magical_fruit",
+      "description": "Fruta rara com leve energia mágica.",
+      "effects": {
+        "health": 4,
+        "hunger": 5,
+        "thirst": 14,
+        "energy": 3,
+        "mana": 10
+      },
+      "rarity": "rare",
+      "stackable": true,
+      "max_stack": 10,
+      "drop": {
+        "source": ["arbusto arcano", "floresta mágica"],
+        "min_quantity": 1,
+        "max_quantity": 2,
+        "drop_chance": 0.18
+      },
+      "buyable": true,
+      "shop": {
+        "seller": "alquimista",
+        "required_level": 4,
+        "price": 75
+      },
+      "sell_price": 30,
+      "craftable": false
+    },
+    {
+      "id": "raw_river_fish",
+      "name": "Peixe de Rio Cru",
+      "type": "food",
+      "category": "raw_fish",
+      "description": "Peixe simples de rio. Pode ser comido cru ou cozido.",
+      "effects": {
+        "health": 3,
+        "hunger": 7,
+        "thirst": -2,
+        "energy": 0,
+        "mana": 0
+      },
+      "rarity": "common",
+      "stackable": true,
+      "max_stack": 12,
+      "drop": {
+        "source": ["pesca em rio"],
+        "min_quantity": 1,
+        "max_quantity": 4,
+        "drop_chance": 0.75
+      },
+      "sell_price": 6,
+      "buyable": false,
+      "cookable": true,
+      "cooks_into": "cooked_river_fish"
+    },
+    {
+      "id": "cooked_river_fish",
+      "name": "Peixe de Rio Assado",
+      "type": "food",
+      "category": "cooked_fish",
+      "description": "Peixe comum assado. Bom alimento inicial.",
+      "effects": {
+        "health": 8,
+        "hunger": 14,
+        "thirst": 0,
+        "energy": 3,
+        "mana": 0
+      },
+      "rarity": "common",
+      "stackable": true,
+      "max_stack": 10,
+      "drop": {
+        "source": ["cozinhar peixe de rio cru"],
+        "min_quantity": 1,
+        "max_quantity": 1,
+        "drop_chance": 1.0
+      },
+      "sell_price": 12,
+      "buyable": true,
+      "shop": {
+        "seller": "pescador",
+        "required_level": 1,
+        "price": 28
+      }
+    },
+    {
+      "id": "raw_goldfin",
+      "name": "Douradinho Cru",
+      "type": "food",
+      "category": "raw_fish",
+      "description": "Peixe pequeno de escamas douradas. Recupera pouca fome, mas vende bem.",
+      "effects": {
+        "health": 2,
+        "hunger": 5,
+        "thirst": -1,
+        "energy": 1,
+        "mana": 0
+      },
+      "rarity": "uncommon",
+      "stackable": true,
+      "max_stack": 12,
+      "drop": {
+        "source": ["pesca em lago claro"],
+        "min_quantity": 1,
+        "max_quantity": 2,
+        "drop_chance": 0.42
+      },
+      "sell_price": 18,
+      "buyable": false,
+      "cookable": true,
+      "cooks_into": "cooked_goldfin"
+    },
+    {
+      "id": "cooked_goldfin",
+      "name": "Douradinho Grelhado",
+      "type": "food",
+      "category": "cooked_fish",
+      "description": "Peixe valioso e energético.",
+      "effects": {
+        "health": 7,
+        "hunger": 12,
+        "thirst": 0,
+        "energy": 10,
+        "mana": 0
+      },
+      "rarity": "uncommon",
+      "stackable": true,
+      "max_stack": 8,
+      "sell_price": 28,
+      "buyable": true,
+      "shop": {
+        "seller": "pescador",
+        "required_level": 3,
+        "price": 60
+      }
+    },
+    {
+      "id": "raw_shadow_eel",
+      "name": "Enguia Sombria Crua",
+      "type": "food",
+      "category": "raw_fish",
+      "description": "Peixe estranho encontrado à noite. Cru, parece drenar energia.",
+      "effects": {
+        "health": 4,
+        "hunger": 9,
+        "thirst": -4,
+        "energy": -5,
+        "mana": 5
+      },
+      "rarity": "rare",
+      "stackable": true,
+      "max_stack": 8,
+      "drop": {
+        "source": ["pesca noturna", "pântano escuro"],
+        "min_quantity": 1,
+        "max_quantity": 1,
+        "drop_chance": 0.2
+      },
+      "sell_price": 35,
+      "buyable": false,
+      "cookable": true,
+      "cooks_into": "cooked_shadow_eel"
+    },
+    {
+      "id": "cooked_shadow_eel",
+      "name": "Enguia Sombria Defumada",
+      "type": "food",
+      "category": "cooked_fish",
+      "description": "Comida rara que recupera mana e fome.",
+      "effects": {
+        "health": 10,
+        "hunger": 18,
+        "thirst": 0,
+        "energy": 2,
+        "mana": 15
+      },
+      "rarity": "rare",
+      "stackable": true,
+      "max_stack": 6,
+      "sell_price": 55,
+      "buyable": true,
+      "shop": {
+        "seller": "alquimista",
+        "required_level": 5,
+        "price": 120
+      }
+    },
+    {
+      "id": "raw_crystal_carp",
+      "name": "Carpa Cristalina Crua",
+      "type": "food",
+      "category": "raw_fish",
+      "description": "Peixe raro de águas mágicas. Mesmo cru possui energia arcana.",
+      "effects": {
+        "health": 5,
+        "hunger": 6,
+        "thirst": 3,
+        "energy": 0,
+        "mana": 8
+      },
+      "rarity": "rare",
+      "stackable": true,
+      "max_stack": 6,
+      "drop": {
+        "source": ["lago cristalino", "bioma mágico"],
+        "min_quantity": 1,
+        "max_quantity": 1,
+        "drop_chance": 0.15
+      },
+      "sell_price": 45,
+      "buyable": false,
+      "cookable": true,
+      "cooks_into": "cooked_crystal_carp"
+    },
+    {
+      "id": "cooked_crystal_carp",
+      "name": "Carpa Cristalina Assada",
+      "type": "food",
+      "category": "cooked_fish",
+      "description": "Refeição mágica que recupera vida, fome e mana.",
+      "effects": {
+        "health": 14,
+        "hunger": 16,
+        "thirst": 4,
+        "energy": 0,
+        "mana": 20
+      },
+      "rarity": "rare",
+      "stackable": true,
+      "max_stack": 5,
+      "sell_price": 70,
+      "buyable": true,
+      "shop": {
+        "seller": "alquimista",
+        "required_level": 6,
+        "price": 160
+      }
+    },
+    {
+      "id": "raw_mud_catfish",
+      "name": "Bagre de Lama Cru",
+      "type": "food",
+      "category": "raw_fish",
+      "description": "Peixe resistente de áreas lamacentas. Cru é pouco agradável.",
+      "effects": {
+        "health": 2,
+        "hunger": 10,
+        "thirst": -6,
+        "energy": -2,
+        "mana": 0
+      },
+      "rarity": "common",
+      "stackable": true,
+      "max_stack": 10,
+      "drop": {
+        "source": ["pântano", "rio barrento"],
+        "min_quantity": 1,
+        "max_quantity": 3,
+        "drop_chance": 0.55
+      },
+      "sell_price": 9,
+      "buyable": false,
+      "cookable": true,
+      "cooks_into": "cooked_mud_catfish"
+    },
+    {
+      "id": "cooked_mud_catfish",
+      "name": "Bagre de Lama Cozido",
+      "type": "food",
+      "category": "cooked_fish",
+      "description": "Sustenta bem, mas não é muito valioso.",
+      "effects": {
+        "health": 9,
+        "hunger": 20,
+        "thirst": 0,
+        "energy": 4,
+        "mana": 0
+      },
+      "rarity": "common",
+      "stackable": true,
+      "max_stack": 8,
+      "sell_price": 18,
+      "buyable": true,
+      "shop": {
+        "seller": "pescador",
+        "required_level": 2,
+        "price": 40
+      }
+    },
+    {
+      "id": "raw_silver_tuna",
+      "name": "Atum Prateado Cru",
+      "type": "food",
+      "category": "raw_fish",
+      "description": "Peixe veloz e nutritivo encontrado em águas profundas.",
+      "effects": {
+        "health": 4,
+        "hunger": 12,
+        "thirst": -3,
+        "energy": 2,
+        "mana": 0
+      },
+      "rarity": "uncommon",
+      "stackable": true,
+      "max_stack": 8,
+      "drop": {
+        "source": ["lago profundo", "rio largo"],
+        "min_quantity": 1,
+        "max_quantity": 2,
+        "drop_chance": 0.32
+      },
+      "sell_price": 24,
+      "buyable": false,
+      "cookable": true,
+      "cooks_into": "cooked_silver_tuna"
+    },
+    {
+      "id": "cooked_silver_tuna",
+      "name": "Atum Prateado Selado",
+      "type": "food",
+      "category": "cooked_fish",
+      "description": "Excelente para recuperar fome e energia.",
+      "effects": {
+        "health": 11,
+        "hunger": 24,
+        "thirst": 0,
+        "energy": 12,
+        "mana": 0
+      },
+      "rarity": "uncommon",
+      "stackable": true,
+      "max_stack": 6,
+      "sell_price": 40,
+      "buyable": true,
+      "shop": {
+        "seller": "pescador",
+        "required_level": 4,
+        "price": 90
+      }
+    },
+    {
+      "id": "raw_fire_koi",
+      "name": "Koi Flamejante Cru",
+      "type": "food",
+      "category": "raw_fish",
+      "description": "Peixe raro de águas quentes. Mesmo cru aquece o corpo.",
+      "effects": {
+        "health": 5,
+        "hunger": 8,
+        "thirst": -8,
+        "energy": 8,
+        "mana": 5
+      },
+      "rarity": "rare",
+      "stackable": true,
+      "max_stack": 5,
+      "drop": {
+        "source": ["lago vulcânico", "fonte termal"],
+        "min_quantity": 1,
+        "max_quantity": 1,
+        "drop_chance": 0.12
+      },
+      "sell_price": 60,
+      "buyable": false,
+      "cookable": true,
+      "cooks_into": "cooked_fire_koi"
+    },
+    {
+      "id": "cooked_fire_koi",
+      "name": "Koi Flamejante Assado",
+      "type": "food",
+      "category": "cooked_fish",
+      "description": "Refeição rara que recupera energia e mana, mas dá sede.",
+      "effects": {
+        "health": 16,
+        "hunger": 18,
+        "thirst": -3,
+        "energy": 18,
+        "mana": 12
+      },
+      "rarity": "rare",
+      "stackable": true,
+      "max_stack": 4,
+      "sell_price": 90,
+      "buyable": true,
+      "shop": {
+        "seller": "cozinheiro raro",
+        "required_level": 7,
+        "price": 220
+      }
+    },
+    {
+      "id": "raw_ancient_cod",
+      "name": "Bacalhau Ancestral Cru",
+      "type": "food",
+      "category": "raw_fish",
+      "description": "Peixe lendário encontrado em ruínas submersas.",
+      "effects": {
+        "health": 8,
+        "hunger": 15,
+        "thirst": -5,
+        "energy": 5,
+        "mana": 10
+      },
+      "rarity": "legendary",
+      "stackable": true,
+      "max_stack": 3,
+      "drop": {
+        "source": ["ruína submersa", "pesca lendária"],
+        "min_quantity": 1,
+        "max_quantity": 1,
+        "drop_chance": 0.04
+      },
+      "sell_price": 180,
+      "buyable": false,
+      "cookable": true,
+      "cooks_into": "cooked_ancient_cod"
+    },
+    {
+      "id": "cooked_ancient_cod",
+      "name": "Bacalhau Ancestral Temperado",
+      "type": "food",
+      "category": "cooked_fish",
+      "description": "Prato lendário que restaura muitos atributos.",
+      "effects": {
+        "health": 35,
+        "hunger": 35,
+        "thirst": 5,
+        "energy": 20,
+        "mana": 25
+      },
+      "rarity": "legendary",
+      "stackable": true,
+      "max_stack": 2,
+      "sell_price": 300,
+      "buyable": false,
+      "craftable": true,
+      "recipe": {
+        "required_station": "fogao_avancado",
+        "required_skill": {
+          "skill": "cozinhar",
+          "level": 7
+        },
+        "ingredients": [
+          {
+            "id": "raw_ancient_cod",
+            "quantity": 1
+          },
+          {
+            "id": "rare_herb",
+            "quantity": 2
+          },
+          {
+            "id": "crystal_salt",
+            "quantity": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "vegetable_soup",
+      "name": "Sopa de Legumes",
+      "type": "food",
+      "category": "meal",
+      "description": "Sopa simples e confortável. Boa para recuperar sede e fome.",
+      "effects": {
+        "health": 10,
+        "hunger": 22,
+        "thirst": 12,
+        "energy": 6,
+        "mana": 0
+      },
+      "rarity": "uncommon",
+      "stackable": true,
+      "max_stack": 6,
+      "buyable": true,
+      "shop": {
+        "seller": "cozinheiro",
+        "required_level": 2,
+        "price": 55
+      },
+      "sell_price": 28,
+      "craftable": true,
+      "recipe": {
+        "required_station": "panela",
+        "required_skill": {
+          "skill": "cozinhar",
+          "level": 2
+        },
+        "ingredients": [
+          {
+            "id": "carrot",
+            "quantity": 1
+          },
+          {
+            "id": "potato",
+            "quantity": 1
+          },
+          {
+            "id": "clean_water",
+            "quantity": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "hunter_stew",
+      "name": "Ensopado do Caçador",
+      "type": "food",
+      "category": "meal",
+      "description": "Refeição forte feita com carne e raízes. Excelente para exploração.",
+      "effects": {
+        "health": 22,
+        "hunger": 35,
+        "thirst": 8,
+        "energy": 12,
+        "mana": 0
+      },
+      "rarity": "rare",
+      "stackable": true,
+      "max_stack": 4,
+      "buyable": true,
+      "shop": {
+        "seller": "caçador",
+        "required_level": 4,
+        "price": 130
+      },
+      "sell_price": 70,
+      "craftable": true,
+      "recipe": {
+        "required_station": "panela",
+        "required_skill": {
+          "skill": "cozinhar",
+          "level": 4
+        },
+        "ingredients": [
+          {
+            "id": "cooked_beef",
+            "quantity": 1
+          },
+          {
+            "id": "potato",
+            "quantity": 2
+          },
+          {
+            "id": "mushroom",
+            "quantity": 1
+          },
+          {
+            "id": "clean_water",
+            "quantity": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "forest_salad",
+      "name": "Salada da Floresta",
+      "type": "food",
+      "category": "meal",
+      "description": "Mistura de folhas, frutas e ervas. Leve e hidratante.",
+      "effects": {
+        "health": 8,
+        "hunger": 16,
+        "thirst": 20,
+        "energy": 10,
+        "mana": 3
+      },
+      "rarity": "uncommon",
+      "stackable": true,
+      "max_stack": 8,
+      "buyable": false,
+      "sell_price": 35,
+      "craftable": true,
+      "recipe": {
+        "required_station": "mesa_de_preparo",
+        "required_skill": {
+          "skill": "cozinhar",
+          "level": 3
+        },
+        "ingredients": [
+          {
+            "id": "berry",
+            "quantity": 2
+          },
+          {
+            "id": "wild_leaf",
+            "quantity": 2
+          },
+          {
+            "id": "apple",
+            "quantity": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "miners_lunch",
+      "name": "Marmita do Mineiro",
+      "type": "food",
+      "category": "meal",
+      "description": "Comida pesada feita para longas sessões de mineração.",
+      "effects": {
+        "health": 18,
+        "hunger": 40,
+        "thirst": -5,
+        "energy": 20,
+        "mana": 0
+      },
+      "rarity": "rare",
+      "stackable": true,
+      "max_stack": 4,
+      "buyable": true,
+      "shop": {
+        "seller": "ferreiro",
+        "required_level": 5,
+        "price": 160
+      },
+      "sell_price": 85,
+      "craftable": true,
+      "recipe": {
+        "required_station": "fogao",
+        "required_skill": {
+          "skill": "cozinhar",
+          "level": 5
+        },
+        "ingredients": [
+          {
+            "id": "cooked_pork",
+            "quantity": 1
+          },
+          {
+            "id": "rice",
+            "quantity": 1
+          },
+          {
+            "id": "bean",
+            "quantity": 1
+          },
+          {
+            "id": "crystal_salt",
+            "quantity": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "apple_juice",
+      "name": "Suco de Maçã",
+      "type": "drink",
+      "category": "juice",
+      "description": "Bebida simples feita com maçãs. Recupera sede e um pouco de energia.",
+      "effects": {
+        "health": 4,
+        "hunger": 2,
+        "thirst": 25,
+        "energy": 8,
+        "mana": 0
+      },
+      "rarity": "uncommon",
+      "stackable": true,
+      "max_stack": 10,
+      "buyable": true,
+      "shop": {
+        "seller": "vendedor geral",
+        "required_level": 2,
+        "price": 40
+      },
+      "sell_price": 20,
+      "craftable": true,
+      "recipe": {
+        "required_station": "espremedor",
+        "required_skill": {
+          "skill": "cozinhar",
+          "level": 2
+        },
+        "ingredients": [
+          {
+            "id": "apple",
+            "quantity": 3
+          },
+          {
+            "id": "clean_water",
+            "quantity": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "tropical_juice",
+      "name": "Suco Tropical",
+      "type": "drink",
+      "category": "juice",
+      "description": "Suco refrescante que recupera bastante sede e energia.",
+      "effects": {
+        "health": 7,
+        "hunger": 3,
+        "thirst": 35,
+        "energy": 15,
+        "mana": 0
+      },
+      "rarity": "rare",
+      "stackable": true,
+      "max_stack": 8,
+      "buyable": true,
+      "shop": {
+        "seller": "agricultor",
+        "required_level": 4,
+        "price": 90
+      },
+      "sell_price": 45,
+      "craftable": true,
+      "recipe": {
+        "required_station": "espremedor",
+        "required_skill": {
+          "skill": "cozinhar",
+          "level": 4
+        },
+        "ingredients": [
+          {
+            "id": "orange",
+            "quantity": 2
+          },
+          {
+            "id": "watermelon_slice",
+            "quantity": 2
+          },
+          {
+            "id": "berry",
+            "quantity": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "arcane_smoothie",
+      "name": "Vitamina Arcana",
+      "type": "drink",
+      "category": "magical_drink",
+      "description": "Bebida mágica feita com frutas arcanas. Boa para magos.",
+      "effects": {
+        "health": 8,
+        "hunger": 8,
+        "thirst": 22,
+        "energy": 8,
+        "mana": 30
+      },
+      "rarity": "epic",
+      "stackable": true,
+      "max_stack": 5,
+      "buyable": true,
+      "shop": {
+        "seller": "alquimista",
+        "required_level": 6,
+        "price": 220
+      },
+      "sell_price": 110,
+      "craftable": true,
+      "recipe": {
+        "required_station": "caldeirao_alquimico",
+        "required_skill": {
+          "skill": "alquimia",
+          "level": 5
+        },
+        "ingredients": [
+          {
+            "id": "mana_grape",
+            "quantity": 3
+          },
+          {
+            "id": "crystal_water",
+            "quantity": 1
+          },
+          {
+            "id": "moon_sugar",
+            "quantity": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "small_health_potion",
+      "name": "Poção Pequena de Vida",
+      "type": "potion",
+      "category": "health_potion",
+      "description": "Poção básica que recupera vida.",
+      "effects": {
+        "health": 25,
+        "hunger": 0,
+        "thirst": 0,
+        "energy": 0,
+        "mana": 0
+      },
+      "rarity": "uncommon",
+      "stackable": true,
+      "max_stack": 10,
+      "buyable": true,
+      "shop": {
+        "seller": "alquimista",
+        "required_level": 1,
+        "price": 60
+      },
+      "sell_price": 30,
+      "craftable": true,
+      "recipe": {
+        "required_station": "caldeirao_simples",
+        "required_skill": {
+          "skill": "alquimia",
+          "level": 1
+        },
+        "ingredients": [
+          {
+            "id": "red_herb",
+            "quantity": 2
+          },
+          {
+            "id": "clean_water",
+            "quantity": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "small_mana_potion",
+      "name": "Poção Pequena de Mana",
+      "type": "potion",
+      "category": "mana_potion",
+      "description": "Poção básica que recupera 20% da mana máxima.",
+      "effects": {
+        "health": 0,
+        "hunger": 0,
+        "thirst": 0,
+        "energy": 0,
+        "mana": 0,
+        "mana_percent": 20
+      },
+      "rarity": "uncommon",
+      "stackable": true,
+      "max_stack": 10,
+      "buyable": true,
+      "shop": {
+        "seller": "alquimista",
+        "required_level": 1,
+        "price": 70
+      },
+      "sell_price": 35,
+      "craftable": true,
+      "recipe": {
+        "required_station": "caldeirao_simples",
+        "required_skill": {
+          "skill": "alquimia",
+          "level": 1
+        },
+        "ingredients": [
+          {
+            "id": "blue_herb",
+            "quantity": 2
+          },
+          {
+            "id": "clean_water",
+            "quantity": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "life_mana_potion",
+      "name": "Poção de Vida e Mana",
+      "type": "potion",
+      "category": "hybrid_potion",
+      "description": "Poção híbrida que recupera 25 de vida e 20% da mana máxima.",
+      "effects": {
+        "health": 25,
+        "hunger": 0,
+        "thirst": 0,
+        "energy": 0,
+        "mana": 0,
+        "mana_percent": 20
+      },
+      "rarity": "rare",
+      "stackable": true,
+      "max_stack": 8,
+      "buyable": true,
+      "shop": {
+        "seller": "alquimista",
+        "required_level": 3,
+        "price": 130
+      },
+      "sell_price": 65,
+      "craftable": true,
+      "recipe": {
+        "required_station": "caldeirao_simples",
+        "required_skill": {
+          "skill": "alquimia",
+          "level": 3
+        },
+        "ingredients": [
+          {
+            "id": "red_herb",
+            "quantity": 2
+          },
+          {
+            "id": "blue_herb",
+            "quantity": 2
+          },
+          {
+            "id": "crystal_water",
+            "quantity": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "stamina_potion",
+      "name": "Poção de Energia",
+      "type": "potion",
+      "category": "energy_potion",
+      "description": "Poção usada por exploradores, lenhadores e mineradores.",
+      "effects": {
+        "health": 0,
+        "hunger": 0,
+        "thirst": -5,
+        "energy": 35,
+        "mana": 0
+      },
+      "rarity": "rare",
+      "stackable": true,
+      "max_stack": 8,
+      "buyable": true,
+      "shop": {
+        "seller": "alquimista",
+        "required_level": 3,
+        "price": 110
+      },
+      "sell_price": 55,
+      "craftable": true,
+      "recipe": {
+        "required_station": "caldeirao_simples",
+        "required_skill": {
+          "skill": "alquimia",
+          "level": 2
+        },
+        "ingredients": [
+          {
+            "id": "yellow_herb",
+            "quantity": 2
+          },
+          {
+            "id": "orange",
+            "quantity": 1
+          },
+          {
+            "id": "clean_water",
+            "quantity": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "royal_elixir",
+      "name": "Elixir Real",
+      "type": "potion",
+      "category": "premium_potion",
+      "description": "Poção extremamente cara, vendida apenas por comerciantes nobres. Recupera muitos atributos.",
+      "effects": {
+        "health": 60,
+        "hunger": 20,
+        "thirst": 20,
+        "energy": 35,
+        "mana": 35
+      },
+      "rarity": "epic",
+      "stackable": true,
+      "max_stack": 3,
+      "buyable": true,
+      "shop": {
+        "seller": "mercador nobre",
+        "required_level": 8,
+        "price": 650,
+        "only_buyable": true
+      },
+      "sell_price": 280,
+      "craftable": false,
+      "drop": {
+        "source": ["baú real", "evento político raro"],
+        "min_quantity": 1,
+        "max_quantity": 1,
+        "drop_chance": 0.03
+      }
+    },
+    {
+      "id": "phoenix_soup",
+      "name": "Sopa da Fênix",
+      "type": "food",
+      "category": "legendary_meal",
+      "description": "Uma sopa lendária capaz de salvar aventureiros em situações extremas.",
+      "effects": {
+        "health": 80,
+        "hunger": 50,
+        "thirst": 25,
+        "energy": 40,
+        "mana": 40
+      },
+      "rarity": "legendary",
+      "stackable": true,
+      "max_stack": 1,
+      "buyable": false,
+      "sell_price": 800,
+      "craftable": true,
+      "recipe": {
+        "required_station": "caldeirao_lendario",
+        "required_skill": {
+          "skill": "cozinhar",
+          "level": 10
+        },
+        "ingredients": [
+          {
+            "id": "cooked_ancient_cod",
+            "quantity": 1
+          },
+          {
+            "id": "phoenix_feather",
+            "quantity": 1
+          },
+          {
+            "id": "royal_elixir",
+            "quantity": 1
+          },
+          {
+            "id": "golden_carrot",
+            "quantity": 2
+          }
+        ]
+      },
+      "special_effects": [
+        {
+          "id": "rebirth_warmth",
+          "name": "Calor do Renascimento",
+          "description": "Durante 60 segundos, regenera 1 de vida por segundo.",
+          "duration_seconds": 60
+        }
+      ]
+    }
+  ]
+}
