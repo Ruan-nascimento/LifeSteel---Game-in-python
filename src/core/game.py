@@ -1,0 +1,1142 @@
+from __future__ import annotations
+
+import random
+
+import pygame
+
+if not hasattr(pygame, "Vector2") and hasattr(pygame, "math"):
+    pygame.Vector2 = pygame.math.Vector2
+
+from src.core.asset_loader import AssetLoader
+from src.core.camera import Camera
+from src.core.input_handler import InputHandler
+from src.core.save_manager import SaveManager
+from src.core.settings import COLORS, Settings
+from src.data.animals_data import ANIMAL_ORDER
+from src.data.enemies_data import ENEMY_ORDER
+from src.data.items_data import ITEMS
+from src.data.recipes_data import COOKING_RECIPES
+from src.entities.animal import Animal
+from src.entities.enemy import Enemy
+from src.entities.npc import NPC
+from src.entities.player import Player
+from src.systems.building_system import BUILDING_COSTS, BuildingSystem
+from src.systems.combat_system import CombatSystem
+from src.systems.crafting_system import CraftingSystem
+from src.systems.economy_system import EconomySystem
+from src.systems.map_exploration_system import MapExplorationSystem
+from src.systems.particle_system import ParticleManager
+from src.systems.quest_system import QuestSystem
+from src.systems.shop_system import ShopSystem
+from src.systems.time_system import TimeSystem
+from src.systems.weather_system import WeatherSystem
+from src.ui.character_creation_ui import CharacterCreationMenu
+from src.ui.character_ui import CharacterUI
+from src.ui.dialogue_ui import DialogueUI
+from src.ui.hud import HUD
+from src.ui.inventory_ui import InventoryUI
+from src.ui.main_menu import MainMenu
+from src.ui.minimap_ui import MinimapUI
+from src.ui.notification_ui import NotificationUI
+from src.ui.settings_ui import SettingsMenu
+from src.ui.shop_ui import ShopUI
+from src.ui.widgets import Button, draw_panel, draw_text, draw_wrapped
+from src.world.world import World
+
+
+class Game:
+    def __init__(self) -> None:
+        pygame.init()
+        pygame.display.set_caption(Settings.TITLE)
+        self.screen = pygame.display.set_mode((Settings.SCREEN_WIDTH, Settings.SCREEN_HEIGHT), pygame.RESIZABLE)
+        self.clock = pygame.time.Clock()
+        self.running = True
+        self.state = "main_menu"
+        self.previous_state = "main_menu"
+
+        self.assets = AssetLoader()
+        self.input = InputHandler()
+        self.save_manager = SaveManager()
+
+        self.main_menu = MainMenu(self.save_manager)
+        self.settings_menu = SettingsMenu()
+        self.character_creation = CharacterCreationMenu(self.assets)
+        self.hud = HUD(self.assets)
+        self.inventory_ui = InventoryUI(self.assets)
+        self.shop_ui = ShopUI(self.assets)
+        self.character_ui = CharacterUI()
+        self.dialogue_ui = DialogueUI()
+        self.notifications = NotificationUI()
+        self.expanded_minimap = MinimapUI()
+
+        self.world: World | None = None
+        self.player: Player | None = None
+        self.camera: Camera | None = None
+        self.npcs: list[NPC] = []
+        self.enemies: list[Enemy] = []
+        self.animals: list[Animal] = []
+
+        self.economy = EconomySystem()
+        self.shop_system = ShopSystem(self.economy)
+        self.combat_system = CombatSystem()
+        self.time_system = TimeSystem()
+        self.weather_system = WeatherSystem()
+        self.particles = ParticleManager()
+        self.exploration: MapExplorationSystem | None = None
+        self.crafting_system = CraftingSystem()
+        self.building_system = BuildingSystem()
+        self.quest_system = QuestSystem()
+
+        self.active_panel: str | None = None
+        self.pause_buttons: list[Button] = []
+        self.build_buttons: list[Button] = []
+        self.craft_buttons: list[Button] = []
+        self.cooking_buttons: list[Button] = []
+        self.selected_recipe_id: str | None = None
+        self.craft_search = ""
+        self.active_structure = None
+        self.death_message_timer = 0.0
+        self._rng = random.Random(42)
+
+    def run(self) -> None:
+        while self.running:
+            dt = self.clock.tick(Settings.FPS) / 1000
+            self._handle_events()
+            self._update(dt)
+            self._draw()
+        pygame.quit()
+
+    def _handle_events(self) -> None:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+                continue
+            if event.type == pygame.VIDEORESIZE:
+                width = max(Settings.MIN_WIDTH, event.w)
+                height = max(Settings.MIN_HEIGHT, event.h)
+                self.screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
+                if self.camera:
+                    self.camera.resize((width, height))
+                continue
+
+            if self.state == "main_menu":
+                self._handle_main_menu_event(event)
+            elif self.state == "settings":
+                self._handle_settings_event(event)
+            elif self.state == "character_creation":
+                self._handle_character_creation_event(event)
+            elif self.state == "playing":
+                self._handle_playing_event(event)
+
+    def _handle_main_menu_event(self, event) -> None:
+        action = self.main_menu.handle_event(event)
+        if action == "new_game":
+            self.state = "character_creation"
+        elif action == "continue":
+            if not self.load_game():
+                self.notifications.push("Nenhum save encontrado.")
+        elif action == "settings":
+            self.previous_state = "main_menu"
+            self.state = "settings"
+        elif action == "quit":
+            self.running = False
+
+    def _handle_settings_event(self, event) -> None:
+        action = self.settings_menu.handle_event(event)
+        if action == "back":
+            self.state = self.previous_state
+
+    def _handle_character_creation_event(self, event) -> None:
+        action = self.character_creation.handle_event(event)
+        if action == "back":
+            self.state = "main_menu"
+        elif isinstance(action, tuple) and action[0] == "start_game":
+            _, name, class_id = action
+            self.new_game(name, class_id)
+
+    def _handle_playing_event(self, event) -> None:
+        if not self.player or not self.world:
+            return
+
+        if self.active_panel == "inventory":
+            action = self.inventory_ui.handle_event(event, self.player)
+            self._handle_inventory_action(action)
+        elif self.active_panel == "shop":
+            action = self.shop_ui.handle_event(event)
+            self._handle_shop_action(action)
+        elif self.active_panel == "character":
+            self.character_ui.handle_event(event)
+        elif self.active_panel == "dialogue":
+            action = self.dialogue_ui.handle_event(event)
+            if action == "close_dialogue":
+                self.active_panel = None
+                self.dialogue_ui.close()
+        elif self.active_panel == "pause":
+            self._handle_pause_event(event)
+        elif self.active_panel == "building":
+            self._handle_building_event(event)
+        elif self.active_panel == "crafting":
+            self._handle_crafting_event(event)
+        elif self.active_panel == "cooking":
+            self._handle_cooking_event(event)
+
+        if event.type == pygame.KEYDOWN:
+            self._handle_playing_key(event.key)
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.active_panel is None:
+            mouse_world = self.camera.screen_to_world(event.pos)
+            if self._try_open_structure_by_click(mouse_world):
+                return
+            if not self._try_fishing(mouse_world):
+                self.combat_system.player_attack(
+                    self.player,
+                    self.world,
+                    self.enemies,
+                    mouse_world,
+                    self.particles,
+                    self.notifications,
+                    self.animals,
+                )
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3 and self.active_panel is None:
+            mouse_world = self.camera.screen_to_world(event.pos)
+            self._try_place_equipped_building(mouse_world)
+
+    def _handle_playing_key(self, key: int) -> None:
+        if not self.player:
+            return
+        if key == pygame.K_ESCAPE:
+            if self.active_panel is None:
+                self.active_panel = "pause"
+            elif self.active_panel == "pause":
+                self.active_panel = None
+            else:
+                self.active_panel = None
+                self.dialogue_ui.close()
+            return
+        if key == pygame.K_F5:
+            self.save_game()
+            return
+        if key == pygame.K_F9:
+            self.load_game()
+            return
+
+        if pygame.K_1 <= key <= pygame.K_5:
+            self.player.inventory.selected_slot = key - pygame.K_1
+            return
+        if key == pygame.K_i:
+            self._toggle_panel("inventory")
+        elif key == pygame.K_c:
+            self._toggle_panel("character")
+        elif key == pygame.K_m:
+            self._toggle_panel("map")
+        elif key == pygame.K_b:
+            self._toggle_panel("building")
+        elif key == pygame.K_k:
+            self._toggle_panel("skills")
+        elif key == pygame.K_TAB:
+            self._cycle_panel()
+        elif key == pygame.K_q:
+            if self.player.use_quick_apple():
+                self.notifications.push("Maca consumida: +15 HP.")
+            else:
+                self.notifications.push("Sem macas no inventario.")
+        elif key == pygame.K_f:
+            self._pickup_drops()
+        elif key == pygame.K_e and self.active_panel is None:
+            self._interact()
+
+    def _toggle_panel(self, panel: str) -> None:
+        self.active_panel = None if self.active_panel == panel else panel
+
+    def _cycle_panel(self) -> None:
+        order = [None, "inventory", "character", "skills", "map"]
+        current_index = order.index(self.active_panel) if self.active_panel in order else 0
+        self.active_panel = order[(current_index + 1) % len(order)]
+
+    def _handle_inventory_action(self, action) -> None:
+        if not action or not self.player or not self.world:
+            return
+        kind = action[0]
+        if kind == "use_slot":
+            _, source, index = action
+            inventory = self._inventory_for_source(source)
+            if inventory and self.player.use_inventory_slot(inventory, index):
+                self.notifications.push("Item usado.")
+        elif kind == "equip_slot":
+            _, source, index = action
+            if source != "main":
+                self.notifications.push("Mova para o inventario principal para equipar.")
+                return
+            slot = self.player.inventory.slots[index]
+            if slot and slot.is_container():
+                if self.player.equip_backpack(index):
+                    self.notifications.push("Mochila equipada.")
+            else:
+                self.player.inventory.selected_slot = index
+                self.notifications.push("Item equipado.")
+        elif kind == "drop_slot":
+            _, source, index = action
+            inventory = self._inventory_for_source(source)
+            if not inventory:
+                return
+            if source == "main" and index == self.player.equipped_backpack_slot:
+                self.player.equipped_backpack_slot = None
+            slot = inventory.remove_from_slot(index, 1)
+            if slot:
+                drop_pos = self.player.center + self.player.facing_vector * 36
+                self.world.spawn_ground_drop(drop_pos, slot.item_id, slot.quantity, contents=slot.contents)
+                self.notifications.push(f"Dropou {ITEMS[slot.item_id]['name']}.")
+        elif kind == "move_slot":
+            _, from_source, from_index, to_source, to_index = action
+            self._move_between_inventories(from_source, from_index, to_source, to_index)
+
+    def _inventory_for_source(self, source: str):
+        if not self.player:
+            return None
+        if source == "main":
+            return self.player.inventory
+        if source == "backpack":
+            slots = self.player.backpack_contents()
+            if slots is None:
+                return None
+            temp = type(self.player.inventory)(len(slots))
+            temp.slots = slots
+            temp.capacity = len(slots)
+            return temp
+        return None
+
+    def _move_between_inventories(self, from_source: str, from_index: int, to_source: str, to_index: int) -> None:
+        if not self.player:
+            return
+        from_inventory = self._inventory_for_source(from_source)
+        to_inventory = self._inventory_for_source(to_source)
+        if not from_inventory or not to_inventory:
+            return
+        if from_source == to_source:
+            from_inventory.move_slot(from_index, to_index)
+        else:
+            if not (0 <= from_index < from_inventory.capacity and 0 <= to_index < to_inventory.capacity):
+                return
+            from_inventory.slots[from_index], to_inventory.slots[to_index] = to_inventory.slots[to_index], from_inventory.slots[from_index]
+        if self.player.equipped_backpack_slot is not None:
+            slot = self.player.inventory.slots[self.player.equipped_backpack_slot]
+            if not slot or not slot.is_container():
+                self.player.equipped_backpack_slot = None
+
+    def _handle_shop_action(self, action) -> None:
+        if not action or not self.player:
+            return
+        kind, value = action
+        if kind == "buy":
+            self.shop_system.buy(self.player, value)
+            self.notifications.push(self.shop_system.message)
+        elif kind == "sell":
+            self.shop_system.sell_from_slot(self.player, value)
+            self.notifications.push(self.shop_system.message)
+
+    def _handle_pause_event(self, event) -> None:
+        if event.type not in {pygame.MOUSEBUTTONDOWN, pygame.MOUSEMOTION}:
+            return
+        for button in self.pause_buttons:
+            action = button.handle_event(event)
+            if action == "resume":
+                self.active_panel = None
+            elif action == "save":
+                self.save_game()
+            elif action == "settings":
+                self.previous_state = "playing"
+                self.state = "settings"
+                self.active_panel = None
+            elif action == "main_menu":
+                self.state = "main_menu"
+                self.active_panel = None
+            elif action == "quit":
+                self.running = False
+
+    def _handle_building_event(self, event) -> None:
+        if not self.player or not self.world or not self.camera:
+            return
+        if event.type == pygame.MOUSEMOTION:
+            for button in self.build_buttons:
+                button.handle_event(event)
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            for button in self.build_buttons:
+                action = button.handle_event(event)
+                if action:
+                    if action == "close_build":
+                        self.active_panel = None
+                    elif isinstance(action, tuple) and action[0] == "select_build":
+                        self.building_system.selected_building = action[1]
+                    return
+            world_pos = self.camera.screen_to_world(event.pos)
+            building_id = self.building_system.selected_building
+            if self.building_system.build(self.player, self.world, building_id, world_pos):
+                self.quest_system.register_build(building_id)
+                self.quest_system.update_completion(self.player)
+                self.notifications.push(self.building_system.message)
+                self.particles.emit(world_pos, color=COLORS["accent"], amount=12, speed=70, lifetime=0.55, radius=3)
+            else:
+                self.notifications.push(self.building_system.message)
+
+    def _handle_crafting_event(self, event) -> None:
+        if not self.player:
+            return
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_BACKSPACE:
+                self.craft_search = self.craft_search[:-1]
+            elif event.key == pygame.K_ESCAPE:
+                self.active_panel = None
+            elif event.unicode and event.unicode.isprintable() and len(self.craft_search) < 24:
+                self.craft_search += event.unicode
+            return
+        if event.type in {pygame.MOUSEBUTTONDOWN, pygame.MOUSEMOTION}:
+            for button in self.craft_buttons:
+                action = button.handle_event(event)
+                if not action:
+                    continue
+                if action == "close_crafting":
+                    self.active_panel = None
+                elif action == "clear_search":
+                    self.craft_search = ""
+                elif isinstance(action, tuple) and action[0] == "select_recipe":
+                    self.selected_recipe_id = action[1]
+                elif isinstance(action, tuple) and action[0] == "craft":
+                    self.crafting_system.craft(self.player, action[1])
+                    self.notifications.push(self.crafting_system.message)
+
+    def _handle_cooking_event(self, event) -> None:
+        if not self.player:
+            return
+        if event.type in {pygame.MOUSEBUTTONDOWN, pygame.MOUSEMOTION}:
+            for button in self.cooking_buttons:
+                action = button.handle_event(event)
+                if not action:
+                    continue
+                if action == "close_cooking":
+                    self.active_panel = None
+                elif isinstance(action, tuple) and action[0] == "cook":
+                    self._cook_item(action[1])
+
+    def _cook_item(self, raw_id: str) -> None:
+        if not self.player:
+            return
+        recipe = COOKING_RECIPES.get(raw_id)
+        if not recipe:
+            return
+        if hasattr(self.player, "can_receive_item") and not self.player.can_receive_item(recipe["output"], 1):
+            self.notifications.push("Inventario cheio. Libere espaco antes de cozinhar.")
+            return
+        if not self.player.inventory.remove_item(raw_id, 1):
+            backpack = self.player.backpack_contents()
+            removed = False
+            if backpack is not None:
+                temp = type(self.player.inventory)(len(backpack))
+                temp.slots = backpack
+                temp.capacity = len(backpack)
+                removed = temp.remove_item(raw_id, 1)
+            if not removed:
+                self.notifications.push("Ingrediente insuficiente.")
+                return
+        leftover = self.player.add_item(recipe["output"], 1)
+        if leftover:
+            self.world.spawn_ground_drop(self.player.center, recipe["output"], leftover)
+        self.player.skills.add_xp("Cozinhar", 7)
+        self.notifications.push(f"Cozinhou {ITEMS[recipe['output']]['name']}.")
+
+    def new_game(self, name: str, class_id: str) -> None:
+        self.world = World(self.assets)
+        self._place_initial_camp()
+        self.player = Player(name, class_id, self.world.spawn_pos, self.assets)
+        self.camera = Camera(self.screen.get_size(), (self.world.pixel_width, self.world.pixel_height))
+        self.npcs = [NPC("Mira", "Vendedora", self.world.vendor_pos, self.assets, vendor=True)]
+        self.enemies = self._spawn_initial_enemies()
+        self.animals = self._spawn_initial_animals()
+        self.economy = EconomySystem()
+        self.shop_system = ShopSystem(self.economy)
+        self.combat_system = CombatSystem()
+        self.time_system = TimeSystem()
+        self.weather_system = WeatherSystem()
+        self.particles = ParticleManager()
+        self.exploration = MapExplorationSystem(self.world)
+        self.crafting_system = CraftingSystem()
+        self.building_system = BuildingSystem()
+        self.quest_system = QuestSystem()
+        self.active_panel = None
+        self.state = "playing"
+        self.notifications.push("Voce acordou perdido na floresta.")
+        self.notifications.push("Use E na bancada inicial para craftar itens.")
+        self.notifications.push("Encontre Mira para comprar ferramentas.")
+
+    def _place_initial_camp(self) -> None:
+        if not self.world:
+            return
+        sx, sy = self.world.spawn_tile
+        for building_id, tile in [
+            ("workbench", (sx + 2, sy + 1)),
+            ("campfire", (sx - 2, sy + 1)),
+        ]:
+            if self.world.can_place_structure(tile):
+                self.world.add_structure(building_id, tile)
+
+    def _spawn_initial_enemies(self) -> list[Enemy]:
+        if not self.world:
+            return []
+        enemies: list[Enemy] = []
+        spawn = self.world.spawn_tile
+        offsets = [
+            (9, 8), (-10, 11), (14, -10), (-17, -8), (24, 5), (5, 23), (-22, 19),
+            (30, -14), (38, 7), (-36, -15), (17, 34), (-28, 32), (42, -28), (-44, 12),
+        ]
+        for index, (ox, oy) in enumerate(offsets):
+            tile = (spawn[0] + ox, spawn[1] + oy)
+            if self.world.can_place_structure(tile):
+                pos = pygame.Vector2((tile[0] + 0.5) * Settings.TILE_SIZE, (tile[1] + 0.5) * Settings.TILE_SIZE)
+                kind = ENEMY_ORDER[index % len(ENEMY_ORDER)]
+                base_level = 1 + (index % 5)
+                enemies.append(Enemy(kind, pos, self.assets, base_level=base_level))
+        return enemies
+
+    def _spawn_initial_animals(self) -> list[Animal]:
+        if not self.world:
+            return []
+        animals: list[Animal] = []
+        spawn = self.world.spawn_tile
+        offsets = [(-7, 4), (-8, -5), (6, -6), (8, 5), (12, 11), (-13, 10), (15, -3), (-15, -9), (4, 14)]
+        for index, (ox, oy) in enumerate(offsets):
+            tile = (spawn[0] + ox, spawn[1] + oy)
+            if self.world.can_place_structure(tile):
+                pos = pygame.Vector2((tile[0] + 0.5) * Settings.TILE_SIZE, (tile[1] + 0.5) * Settings.TILE_SIZE)
+                animals.append(Animal(ANIMAL_ORDER[index % len(ANIMAL_ORDER)], pos, self.assets))
+        return animals
+
+    def _update(self, dt: float) -> None:
+        self.input.refresh()
+        self.death_message_timer = max(0.0, self.death_message_timer - dt)
+        if self.state == "main_menu":
+            self.main_menu.update(dt)
+        elif self.state == "playing":
+            self._update_playing(dt)
+        self.notifications.update(dt)
+
+    def _update_playing(self, dt: float) -> None:
+        if not all([self.player, self.world, self.camera, self.exploration]):
+            return
+        blocked = self.active_panel in {"inventory", "shop", "character", "skills", "map", "pause", "building", "crafting", "cooking", "dialogue"}
+        if not blocked:
+            self.player.update(dt, self.input, self.world, self.weather_system, self.particles)
+            self.world.update(dt)
+            for npc in self.npcs:
+                npc.update(dt)
+            for animal in self.animals:
+                animal.update(dt, self.world)
+            for enemy in self.enemies:
+                enemy.update(dt, self.player, self.world)
+                attack_range = enemy.attack_range if enemy.ranged else 34
+                if enemy.alive and enemy.center.distance_to(self.player.center) <= attack_range and enemy.attack_cooldown <= 0:
+                    self.combat_system.enemy_attack_player(enemy, self.player, self.particles, self.notifications)
+                    enemy.attack_cooldown = 1.8 if enemy.ranged else 1.2
+            new_day = self.time_system.update(dt)
+            self.weather_system.update(dt, new_day)
+            reveal_radius = 170 + self.player.skills.exploration_radius_bonus()
+            if self.player.class_id == "explorer":
+                reveal_radius += 48
+            self.exploration.reveal_around(self.player.center, reveal_radius)
+            self.quest_system.update_completion(self.player)
+            if not self.player.alive:
+                self._handle_player_death()
+        self.particles.update(dt)
+        self.camera.update(self.player.center)
+
+    def _handle_player_death(self) -> None:
+        if not self.player or not self.world:
+            return
+        self.player.drop_all_items(self.world)
+        self.player.alive = True
+        self.player.pos = self.world.spawn_pos.copy()
+        self.player.hp = self.player.max_hp
+        self.player.hunger = 55
+        self.player.thirst = 55
+        self.player.energy = 45
+        self.death_message_timer = 3.2
+        self.notifications.push("Voce morreu.")
+
+    def _draw(self) -> None:
+        if self.state == "main_menu":
+            self.main_menu.draw(self.screen)
+        elif self.state == "settings":
+            self.settings_menu.draw(self.screen)
+        elif self.state == "character_creation":
+            self.character_creation.draw(self.screen)
+        elif self.state == "playing":
+            self._draw_playing()
+        pygame.display.flip()
+
+    def _draw_playing(self) -> None:
+        if not all([self.player, self.world, self.camera, self.exploration]):
+            self.screen.fill(COLORS["black"])
+            return
+        self.world.draw(self.screen, self.camera, self.exploration)
+        drawables = []
+        for npc in self.npcs:
+            drawables.append((npc.rect.bottom, npc))
+        for enemy in self.enemies:
+            drawables.append((enemy.rect.bottom, enemy))
+        for animal in self.animals:
+            drawables.append((animal.rect.bottom, animal))
+        drawables.append((self.player.rect.bottom, self.player))
+        for _, entity in sorted(drawables, key=lambda item: item[0]):
+            entity.draw(self.screen, self.camera)
+        self.particles.draw(self.screen, self.camera)
+        self._draw_world_overlays()
+
+        interaction_text = self._interaction_text()
+        self.hud.draw(
+            self.screen,
+            self.player,
+            self.world,
+            self.exploration,
+            self.npcs,
+            self.enemies,
+            self.time_system,
+            self.weather_system,
+            interaction_text,
+            self.notifications,
+            self.quest_system,
+            self.settings_menu.show_fps,
+            self.clock.get_fps(),
+        )
+        self._draw_active_panel()
+        if self.death_message_timer > 0:
+            self._draw_death_message()
+
+    def _draw_death_message(self) -> None:
+        alpha = max(0, min(255, int(255 * min(1, self.death_message_timer / 0.7))))
+        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, min(150, alpha)))
+        self.screen.blit(overlay, (0, 0))
+        font = pygame.font.SysFont(Settings.UI_FONT, 52, bold=True)
+        text = "Voce morreu"
+        image = font.render(text, True, (230, 70, 70))
+        shadow = font.render(text, True, (20, 8, 8))
+        rect = image.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
+        self.screen.blit(shadow, rect.move(3, 3))
+        self.screen.blit(image, rect)
+
+    def _draw_world_overlays(self) -> None:
+        color, alpha = self.weather_system.overlay()
+        darkness = self.time_system.light_alpha()
+        total_alpha = min(170, alpha + darkness)
+        if total_alpha > 0:
+            overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+            overlay.fill((*color, total_alpha))
+            if self.world and self.camera:
+                for pos, radius, light_color in self.world.light_sources(self.weather_system):
+                    screen_pos = pos - self.camera.offset
+                    if -radius <= screen_pos.x <= self.screen.get_width() + radius and -radius <= screen_pos.y <= self.screen.get_height() + radius:
+                        light = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+                        for step in range(radius, 0, -10):
+                            strength = int(135 * (step / radius) ** 2)
+                            pygame.draw.circle(light, (0, 0, 0, strength), (radius, radius), step)
+                        overlay.blit(light, (screen_pos.x - radius, screen_pos.y - radius), special_flags=pygame.BLEND_RGBA_SUB)
+            self.screen.blit(overlay, (0, 0))
+            if self.world and self.camera:
+                for pos, radius, light_color in self.world.light_sources(self.weather_system):
+                    screen_pos = pos - self.camera.offset
+                    glow = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+                    pygame.draw.circle(glow, (*light_color, 28), (radius, radius), radius)
+                    pygame.draw.circle(glow, (*light_color, 48), (radius, radius), radius // 3)
+                    self.screen.blit(glow, (screen_pos.x - radius, screen_pos.y - radius), special_flags=pygame.BLEND_RGBA_ADD)
+
+    def _draw_active_panel(self) -> None:
+        if not self.active_panel or not self.player or not self.world or not self.exploration:
+            return
+        shade = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        shade.fill((0, 0, 0, 92))
+        if self.active_panel not in {"building"}:
+            self.screen.blit(shade, (0, 0))
+        if self.active_panel == "inventory":
+            self.inventory_ui.draw(self.screen, self.player)
+        elif self.active_panel == "shop":
+            self.shop_ui.draw(self.screen, self.player, self.shop_system)
+        elif self.active_panel == "character":
+            self.character_ui.draw(self.screen, self.player, self.quest_system)
+        elif self.active_panel == "skills":
+            self.character_ui.draw_skills_only(self.screen, self.player)
+        elif self.active_panel == "map":
+            rect = pygame.Rect(90, 54, self.screen.get_width() - 180, self.screen.get_height() - 108)
+            self.expanded_minimap.draw(self.screen, self.world, self.exploration, self.player, self.npcs, self.enemies, rect, expanded=True)
+        elif self.active_panel == "pause":
+            self._draw_pause_panel()
+        elif self.active_panel == "building":
+            self._draw_building_panel()
+        elif self.active_panel == "crafting":
+            self._draw_crafting_panel()
+        elif self.active_panel == "cooking":
+            self._draw_cooking_panel()
+        elif self.active_panel == "dialogue":
+            self.dialogue_ui.draw(self.screen)
+
+    def _draw_pause_panel(self) -> None:
+        panel = pygame.Rect(self.screen.get_width() // 2 - 170, self.screen.get_height() // 2 - 180, 340, 360)
+        draw_panel(self.screen, panel, "Pausa")
+        specs = [
+            ("Continuar", "resume"),
+            ("Salvar", "save"),
+            ("Configuracoes", "settings"),
+            ("Menu Inicial", "main_menu"),
+            ("Sair", "quit"),
+        ]
+        self.pause_buttons = []
+        for index, (label, action) in enumerate(specs):
+            button = Button((panel.x + 55, panel.y + 70 + index * 52, 230, 38), label, action)
+            button.draw(self.screen)
+            self.pause_buttons.append(button)
+
+    def _draw_building_panel(self) -> None:
+        if not self.player:
+            return
+        panel = pygame.Rect(18, 154, 310, 430)
+        draw_panel(self.screen, panel, "Construcao")
+        draw_text(self.screen, "Clique no mundo para posicionar.", (panel.x + 16, panel.y + 46), (183, 190, 178), 13)
+        self.build_buttons = []
+        y = panel.y + 78
+        for building_id in self.building_system.unlocked(self.player):
+            label = ITEMS.get(building_id, {}).get("name", building_id)
+            selected = building_id == self.building_system.selected_building
+            button = Button((panel.x + 14, y, 132, 30), label[:18], ("select_build", building_id))
+            button.hovered = selected
+            button.draw(self.screen)
+            self.build_buttons.append(button)
+            costs = self.building_system.adjusted_cost(self.player, building_id)
+            cost_text = ", ".join(f"{amt} {ITEMS[item]['name']}" for item, amt in costs.items())
+            draw_text(self.screen, cost_text[:32], (panel.x + 156, y + 8), COLORS["white"], 12)
+            y += 38
+            if y > panel.bottom - 52:
+                break
+        close = Button((panel.x + 86, panel.bottom - 42, 140, 32), "Fechar", "close_build")
+        close.draw(self.screen)
+        self.build_buttons.append(close)
+        selected = self.building_system.selected_building
+        draw_text(self.screen, self.building_system.message, (panel.x + 16, panel.bottom - 72), COLORS["white"], 12)
+        draw_text(self.screen, f"Selecionado: {ITEMS.get(selected, {}).get('name', selected)}", (panel.x + 16, panel.bottom - 96), COLORS["accent"], 13, bold=True)
+
+    def _draw_crafting_panel(self) -> None:
+        if not self.player:
+            return
+        panel = pygame.Rect(self.screen.get_width() // 2 - 520, self.screen.get_height() // 2 - 315, 1040, 630)
+        draw_panel(self.screen, panel, "Crafting")
+        recipes = self.crafting_system.unlocked_recipes(self.player)
+        query = self.craft_search.lower().strip()
+        filtered = [
+            (recipe_id, recipe)
+            for recipe_id, recipe in recipes.items()
+            if not query or query in recipe["name"].lower()
+        ]
+        filtered.sort(key=lambda item: item[1]["name"])
+        filtered_ids = {recipe_id for recipe_id, _ in filtered}
+        if self.selected_recipe_id not in filtered_ids:
+            self.selected_recipe_id = filtered[0][0] if filtered else None
+        self.craft_buttons = []
+
+        search_rect = pygame.Rect(panel.x + 90, panel.y + 48, 450, 34)
+        pygame.draw.rect(self.screen, COLORS["panel_dark"], search_rect, border_radius=5)
+        pygame.draw.rect(self.screen, (78, 89, 82), search_rect, 1, border_radius=5)
+        draw_text(self.screen, self.craft_search or "Tudo liberado", (search_rect.x + 12, search_rect.y + 8), (216, 208, 178), 14, bold=True)
+        clear = Button((search_rect.right + 10, search_rect.y, 74, 34), "Limpar", "clear_search")
+        clear.draw(self.screen)
+        self.craft_buttons.append(clear)
+
+        grid_rect = pygame.Rect(panel.x + 24, panel.y + 96, 640, 420)
+        detail_rect = pygame.Rect(panel.x + 684, panel.y + 96, 332, 470)
+        pygame.draw.rect(self.screen, (43, 31, 23), grid_rect, border_radius=5)
+        pygame.draw.rect(self.screen, (94, 71, 45), grid_rect, 2, border_radius=5)
+        pygame.draw.rect(self.screen, COLORS["panel_dark"], detail_rect, border_radius=6)
+        pygame.draw.rect(self.screen, (94, 71, 45), detail_rect, 2, border_radius=6)
+
+        cell = 58
+        gap = 10
+        cols = 9
+        start_x = grid_rect.x + 18
+        start_y = grid_rect.y + 18
+        for index, (recipe_id, recipe) in enumerate(filtered[:54]):
+            col = index % cols
+            row = index // cols
+            rect = pygame.Rect(start_x + col * (cell + gap), start_y + row * (cell + gap), cell, cell)
+            output_id, amount = recipe["output"]
+            can_materials = self.player.can_pay_items(recipe["ingredients"]) if hasattr(self.player, "can_pay_items") else self.player.inventory.can_pay(recipe["ingredients"])
+            can_space = self.player.can_receive_item(output_id, amount) if hasattr(self.player, "can_receive_item") else self.player.inventory.can_accept_item(output_id, amount)
+            selected = recipe_id == self.selected_recipe_id
+            bg = (72, 55, 36) if selected else (31, 34, 31)
+            border = COLORS["accent"] if selected else (118, 91, 55)
+            if not can_materials:
+                border = (111, 76, 66)
+            elif can_space:
+                border = (93, 154, 89)
+            pygame.draw.rect(self.screen, bg, rect, border_radius=4)
+            pygame.draw.rect(self.screen, border, rect, 2, border_radius=4)
+            icon = self.assets.item_icon(output_id, 38)
+            self.screen.blit(icon, (rect.centerx - 19, rect.centery - 20))
+            if amount > 1:
+                draw_text(self.screen, str(amount), (rect.right - 18, rect.bottom - 18), COLORS["white"], 12, bold=True)
+            button = Button(rect, "", ("select_recipe", recipe_id))
+            self.craft_buttons.append(button)
+
+        if not filtered:
+            draw_text(self.screen, "Nenhuma receita encontrada.", grid_rect.center, COLORS["white"], 18, center=True)
+
+        selected = recipes.get(self.selected_recipe_id) if self.selected_recipe_id else None
+        if selected:
+            output_id, amount = selected["output"]
+            item_data = ITEMS[output_id]
+            surface_icon = self.assets.item_icon(output_id, 56)
+            self.screen.blit(surface_icon, (detail_rect.x + 18, detail_rect.y + 18))
+            draw_text(self.screen, selected["name"], (detail_rect.x + 88, detail_rect.y + 18), COLORS["accent"], 21, bold=True)
+            draw_text(self.screen, f"Cria: {amount}x {item_data['name']}", (detail_rect.x + 88, detail_rect.y + 48), COLORS["white"], 13)
+            draw_wrapped(self.screen, item_data.get("description", ""), pygame.Rect(detail_rect.x + 18, detail_rect.y + 86, detail_rect.width - 36, 58), COLORS["white"], 13)
+
+            draw_text(self.screen, "Materiais", (detail_rect.x + 18, detail_rect.y + 152), COLORS["accent"], 17, bold=True)
+            y = detail_rect.y + 182
+            can_materials = True
+            for item_id, needed in selected["ingredients"].items():
+                owned = self.player.count_item(item_id) if hasattr(self.player, "count_item") else self.player.inventory.count(item_id)
+                ok = owned >= needed
+                can_materials = can_materials and ok
+                color = COLORS["accent_2"] if ok else COLORS["danger"]
+                self.screen.blit(self.assets.item_icon(item_id, 24), (detail_rect.x + 20, y - 3))
+                draw_text(self.screen, f"{ITEMS[item_id]['name']}: {owned}/{needed}", (detail_rect.x + 52, y), color, 15, bold=True)
+                y += 32
+
+            draw_text(self.screen, "Pode fazer", (detail_rect.x + 18, y + 10), COLORS["accent"], 17, bold=True)
+            y += 40
+            for line in self._craft_usage_lines(output_id)[:5]:
+                draw_wrapped(self.screen, f"- {line}", pygame.Rect(detail_rect.x + 22, y, detail_rect.width - 44, 34), COLORS["white"], 13)
+                y += 28
+
+            can_space = self.player.can_receive_item(output_id, amount) if hasattr(self.player, "can_receive_item") else self.player.inventory.can_accept_item(output_id, amount)
+            can_craft = can_materials and can_space
+            if not can_space:
+                draw_text(self.screen, "Inventario cheio", (detail_rect.x + 18, detail_rect.bottom - 86), COLORS["danger"], 14, bold=True)
+            create = Button((detail_rect.x + 18, detail_rect.bottom - 54, 120, 36), "Criar", ("craft", self.selected_recipe_id), disabled=not can_craft)
+            create.draw(self.screen)
+            self.craft_buttons.append(create)
+            draw_wrapped(self.screen, self.crafting_system.message, pygame.Rect(detail_rect.x + 154, detail_rect.bottom - 54, detail_rect.width - 170, 42), COLORS["white"], 13)
+        else:
+            draw_text(self.screen, "Nenhuma receita encontrada.", (detail_rect.x + 20, detail_rect.y + 22), COLORS["white"], 16)
+
+        draw_text(self.screen, "Clique em uma receita. Digite para pesquisar. Botao direito no chao coloca construcoes equipadas.", (grid_rect.x + 8, panel.bottom - 78), (190, 181, 148), 13)
+        close = Button((panel.centerx - 70, panel.bottom - 48, 140, 34), "Fechar", "close_crafting")
+        close.draw(self.screen)
+        self.craft_buttons.append(close)
+
+    def _craft_usage_lines(self, item_id: str) -> list[str]:
+        data = ITEMS[item_id]
+        lines: list[str] = []
+        if data.get("type") == "building":
+            lines.append("Pode ser equipado e colocado no chao com botao direito.")
+            building = data.get("building", item_id)
+            if building == "workbench":
+                lines.append("Depois de colocado, use E para abrir crafting.")
+            elif building == "stone_stove":
+                lines.append("Depois de colocado, use E para assar carnes e peixes.")
+            elif building in {"torch", "campfire"}:
+                lines.append("Ilumina a area ao redor durante a noite.")
+            elif building in {"chest", "small_chest"}:
+                lines.append("Objeto de armazenamento para expansao de base.")
+        elif data.get("type") in {"weapon", "tool"}:
+            lines.append("Pode ser equipado na hotbar para combate, coleta ou interacao.")
+            if data.get("tool_type"):
+                lines.append(f"Ferramenta do tipo {data['tool_type']}.")
+        elif data.get("type") in {"food", "potion"}:
+            lines.append("Uso proprio: consuma pelo inventario para recuperar atributos.")
+        else:
+            lines.append("Material ou item de suporte para receitas futuras.")
+        if data.get("heal"):
+            lines.append(f"Recupera {data['heal']} HP.")
+        if data.get("hunger"):
+            lines.append(f"Sacia {data['hunger']} de fome.")
+        if data.get("thirst"):
+            lines.append(f"Recupera {data['thirst']} de sede.")
+        return lines
+
+    def _draw_cooking_panel(self) -> None:
+        if not self.player:
+            return
+        panel = pygame.Rect(self.screen.get_width() // 2 - 330, self.screen.get_height() // 2 - 230, 660, 460)
+        draw_panel(self.screen, panel, "Fogao de Pedra")
+        draw_text(self.screen, "Escolha uma carne ou peixe para assar.", (panel.x + 24, panel.y + 58), COLORS["white"], 15)
+        self.cooking_buttons = []
+        y = panel.y + 100
+        for raw_id, recipe in COOKING_RECIPES.items():
+            owned = self.player.inventory.count(raw_id)
+            backpack = self.player.backpack_contents()
+            if backpack is not None:
+                owned += sum(slot.quantity for slot in backpack if slot and slot.item_id == raw_id)
+            row = pygame.Rect(panel.x + 24, y, panel.width - 48, 46)
+            pygame.draw.rect(self.screen, COLORS["panel_dark"], row, border_radius=5)
+            self.screen.blit(self.assets.item_icon(raw_id, 28), (row.x + 8, row.y + 9))
+            self.screen.blit(self.assets.item_icon(recipe["output"], 28), (row.x + 248, row.y + 9))
+            draw_text(self.screen, f"{ITEMS[raw_id]['name']} x{owned}", (row.x + 46, row.y + 14), COLORS["white"], 14, bold=True)
+            draw_text(self.screen, "->", (row.x + 218, row.y + 14), COLORS["accent"], 14, bold=True)
+            draw_text(self.screen, ITEMS[recipe["output"]]["name"], (row.x + 286, row.y + 14), COLORS["white"], 14, bold=True)
+            button = Button((row.right - 86, row.y + 8, 74, 30), "Assar", ("cook", raw_id), disabled=owned <= 0)
+            button.draw(self.screen)
+            self.cooking_buttons.append(button)
+            y += 54
+        close = Button((panel.centerx - 70, panel.bottom - 48, 140, 34), "Fechar", "close_cooking")
+        close.draw(self.screen)
+        self.cooking_buttons.append(close)
+
+    def _interaction_text(self) -> str | None:
+        if not self.player or not self.world:
+            return None
+        drops = [drop for drop in self.world.drops if drop.pos.distance_to(self.player.center) <= 42]
+        if drops:
+            return "F - pegar item do chao"
+        npc = self._nearest_npc(76)
+        if npc:
+            if npc.vendor and self.time_system.shop_is_open():
+                return "E - abrir loja de Mira"
+            return "E - conversar"
+        structure = self.world.nearby_structure_with_interface(self.player.center, 64)
+        if structure:
+            if structure.interface_kind() == "crafting":
+                return "E/clique - abrir bancada de crafting"
+            if structure.interface_kind() == "cooking":
+                return "E/clique - abrir fogao"
+            return "E/clique - abrir interface"
+        nearby = [node for node in self.world.resources if node.center.distance_to(self.player.center) < Settings.INTERACTION_RANGE]
+        if nearby:
+            return "Mouse esquerdo - usar ferramenta/atacar recurso"
+        return None
+
+    def _nearest_npc(self, distance: int) -> NPC | None:
+        if not self.player:
+            return None
+        nearby = [npc for npc in self.npcs if npc.center.distance_to(self.player.center) <= distance]
+        return min(nearby, key=lambda npc: npc.center.distance_to(self.player.center)) if nearby else None
+
+    def _nearest_structure(self, building_id: str, distance: int):
+        if not self.player or not self.world:
+            return None
+        matches = [
+            structure
+            for structure in self.world.structures
+            if structure.building_id == building_id and pygame.Vector2(structure.rect.center).distance_to(self.player.center) <= distance
+        ]
+        return min(matches, key=lambda structure: pygame.Vector2(structure.rect.center).distance_to(self.player.center)) if matches else None
+
+    def _interact(self) -> None:
+        if not self.player:
+            return
+        structure = self.world.nearby_structure_with_interface(self.player.center, 64) if self.world else None
+        if structure:
+            self._open_structure_interface(structure)
+            return
+        npc = self._nearest_npc(76)
+        if npc:
+            if npc.vendor and self.time_system.shop_is_open():
+                self.active_panel = "shop"
+                self.notifications.push("Loja aberta.")
+            else:
+                self.dialogue_ui.open(npc)
+                self.active_panel = "dialogue"
+            return
+        self.notifications.push("Nada proximo para interagir.")
+
+    def _try_open_structure_by_click(self, mouse_world) -> bool:
+        if not self.player or not self.world:
+            return False
+        structure = self.world.structure_at_point(mouse_world, self.player.center, 78)
+        if not structure or not structure.has_interface():
+            return False
+        self._open_structure_interface(structure)
+        return True
+
+    def _open_structure_interface(self, structure) -> None:
+        self.active_structure = structure
+        interface = structure.interface_kind()
+        if interface == "crafting":
+            self.active_panel = "crafting"
+            recipes = self.crafting_system.unlocked_recipes(self.player)
+            if self.selected_recipe_id not in recipes:
+                self.selected_recipe_id = next(iter(recipes), None)
+        elif interface == "cooking":
+            self.active_panel = "cooking"
+        elif interface == "chest":
+            self.notifications.push("Bau detectado. Interface de bau fica para a proxima expansao.")
+
+    def _try_place_equipped_building(self, mouse_world) -> bool:
+        if not self.player or not self.world:
+            return False
+        slot = self.player.inventory.selected()
+        item = self.player.equipped_item()
+        if not slot or not item or not item.is_building():
+            return False
+        if self.player.center.distance_to(mouse_world) > 210:
+            self.notifications.push("Muito longe para construir.")
+            return True
+        tile = self.world.pixel_to_tile(mouse_world)
+        if not self.world.can_place_structure(tile):
+            self.notifications.push("Local invalido para colocar construcao.")
+            return True
+        building_id = item.item_id
+        self.world.add_structure(building_id, tile)
+        self.player.inventory.remove_from_slot(self.player.inventory.selected_slot, 1)
+        self.player.skills.add_xp("Construcao", 6)
+        self.quest_system.register_build(building_id)
+        self.quest_system.update_completion(self.player)
+        self.particles.emit(mouse_world, color=ITEMS[item.item_id].get("icon_color", COLORS["accent"]), amount=12, speed=70, lifetime=0.55, radius=3)
+        self.notifications.push(f"Colocou {item.name}.")
+        return True
+
+    def _pickup_drops(self) -> None:
+        if not self.player or not self.world:
+            return
+        drops = self.world.pick_drops_near(self.player.center)
+        if not drops:
+            self.notifications.push("Nenhum item no alcance.")
+            return
+        for drop in drops:
+            if drop.contents is not None:
+                from src.systems.inventory_system import InventorySlot
+
+                accepted = self.player.add_slot(InventorySlot(drop.item_id, drop.quantity, contents=drop.contents))
+                if accepted:
+                    self.quest_system.register_collect(drop.item_id, drop.quantity)
+                    self.notifications.push(f"Pegou {ITEMS[drop.item_id]['name']} com conteudo.")
+                    self.particles.emit(drop.pos, color=ITEMS[drop.item_id].get("icon_color", COLORS["white"]), amount=7, speed=55, lifetime=0.4, radius=3)
+                else:
+                    self.world.spawn_ground_drop(drop.pos, drop.item_id, drop.quantity, contents=drop.contents)
+                    self.notifications.push("Inventario cheio.")
+                continue
+            leftover = self.player.add_item(drop.item_id, drop.quantity)
+            collected = drop.quantity - leftover
+            if collected > 0:
+                self.quest_system.register_collect(drop.item_id, collected)
+                self.notifications.push(f"Pegou {collected} {ITEMS[drop.item_id]['name']}.")
+                self.particles.emit(drop.pos, color=ITEMS[drop.item_id].get("icon_color", COLORS["white"]), amount=7, speed=55, lifetime=0.4, radius=3)
+            if leftover > 0:
+                self.world.spawn_ground_drop(drop.pos, drop.item_id, leftover)
+                self.notifications.push("Inventario cheio.")
+        self.quest_system.update_completion(self.player)
+
+    def _try_fishing(self, mouse_world) -> bool:
+        if not self.player or not self.world:
+            return False
+        item = self.player.equipped_item()
+        if not item or item.tool_type != "fishing_rod":
+            return False
+        if self.player.center.distance_to(mouse_world) > item.range:
+            return False
+        if not self.world.is_water_near(mouse_world, 34):
+            return False
+        if self.player.energy < item.energy_cost:
+            self.notifications.push("Energia insuficiente para pescar.")
+            return True
+        self.player.energy -= item.energy_cost
+        caught = "small_fish" if self._rng.random() < 0.72 * self.weather_system.fishing_bonus() else "water_flask"
+        self.world.spawn_ground_drop(mouse_world, caught, 1)
+        self.player.skills.add_xp("Pescar", 8)
+        self.player.level.add_xp(4)
+        self.particles.emit(mouse_world, color=COLORS["water"], amount=12, speed=70, lifetime=0.55, radius=3)
+        self.notifications.push(f"Pescou: {ITEMS[caught]['name']}.")
+        return True
+
+    def save_game(self) -> None:
+        if not all([self.player, self.world, self.exploration]):
+            self.notifications.push("Nada para salvar ainda.")
+            return
+        data = {
+            "player": self.player.to_dict(),
+            "world": self.world.to_dict(),
+            "exploration": self.exploration.to_list(),
+            "time": self.time_system.to_dict(),
+            "weather": self.weather_system.to_dict(),
+            "shop": self.shop_system.to_dict(),
+            "quests": self.quest_system.to_dict(),
+            "enemies": [
+                {
+                    "kind": enemy.kind,
+                    "base_level": enemy.base_level,
+                    "level": enemy.level,
+                    "pos": [enemy.pos.x, enemy.pos.y],
+                    "hp": enemy.hp,
+                    "alive": enemy.alive,
+                }
+                for enemy in self.enemies
+            ],
+            "animals": [
+                {
+                    "kind": animal.kind,
+                    "pos": [animal.pos.x, animal.pos.y],
+                    "hp": animal.hp,
+                    "alive": animal.alive,
+                }
+                for animal in self.animals
+            ],
+            "npcs": [
+                {
+                    "name": npc.name,
+                    "profession": npc.profession,
+                    "pos": [npc.pos.x, npc.pos.y],
+                    "vendor": npc.vendor,
+                    "friendship": npc.friendship,
+                    "romance": npc.romance,
+                }
+                for npc in self.npcs
+            ],
+        }
+        self.save_manager.save(data)
+        self.notifications.push("Jogo salvo em saves/save_01.json.")
+
+    def load_game(self) -> bool:
+        data = self.save_manager.load()
+        if not data:
+            return False
+        world_seed = int(data.get("world", {}).get("seed", 1337))
+        self.world = World(self.assets, seed=world_seed)
+        self.world.load_dict(data.get("world", {}))
+        self.player = Player.from_dict(data.get("player", {}), self.assets)
+        self.camera = Camera(self.screen.get_size(), (self.world.pixel_width, self.world.pixel_height))
+        self.exploration = MapExplorationSystem(self.world)
+        self.exploration.from_list(data.get("exploration", []))
+        self.time_system = TimeSystem.from_dict(data.get("time", {}))
+        self.weather_system = WeatherSystem.from_dict(data.get("weather", {}))
+        self.economy = EconomySystem()
+        self.shop_system = ShopSystem(self.economy)
+        self.shop_system.load_dict(data.get("shop", {}))
+        self.quest_system = QuestSystem.from_dict(data.get("quests", {}))
+        self.crafting_system = CraftingSystem()
+        self.building_system = BuildingSystem()
+        self.particles = ParticleManager()
+        self.combat_system = CombatSystem()
+        self.npcs = []
+        for raw in data.get("npcs", []):
+            npc = NPC(raw.get("name", "Mira"), raw.get("profession", "Vendedora"), raw.get("pos", self.world.vendor_pos), self.assets, bool(raw.get("vendor", False)))
+            npc.friendship = int(raw.get("friendship", 0))
+            npc.romance = int(raw.get("romance", 0))
+            self.npcs.append(npc)
+        if not self.npcs:
+            self.npcs = [NPC("Mira", "Vendedora", self.world.vendor_pos, self.assets, vendor=True)]
+        self.enemies = []
+        for raw in data.get("enemies", []):
+            enemy = Enemy(raw.get("kind", "forest_slime"), raw.get("pos", self.world.spawn_pos), self.assets, int(raw.get("base_level", raw.get("level", 1))))
+            enemy.level = int(raw.get("level", enemy.base_level))
+            enemy.max_hp = enemy._scaled_hp(enemy.level)
+            enemy.damage = enemy._scaled_damage(enemy.level)
+            enemy.hp = float(raw.get("hp", enemy.hp))
+            enemy.alive = bool(raw.get("alive", enemy.hp > 0))
+            self.enemies.append(enemy)
+        if not self.enemies:
+            self.enemies = self._spawn_initial_enemies()
+        self.animals = []
+        for raw in data.get("animals", []):
+            animal = Animal(raw.get("kind", "pig"), raw.get("pos", self.world.spawn_pos), self.assets)
+            animal.hp = float(raw.get("hp", animal.hp))
+            animal.alive = bool(raw.get("alive", animal.hp > 0))
+            self.animals.append(animal)
+        if not self.animals:
+            self.animals = self._spawn_initial_animals()
+        self.active_panel = None
+        self.state = "playing"
+        self.notifications.push("Save carregado.")
+        return True
