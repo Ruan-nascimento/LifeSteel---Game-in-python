@@ -1,4 +1,5 @@
 from src.data.recipes_data import RECIPES
+from src.data.food_data import friendly_station_name, station_allows
 
 
 class CraftingSystem:
@@ -15,13 +16,20 @@ class CraftingSystem:
                 unlocked[recipe_id] = recipe
         return unlocked
 
-    def craft(self, player, recipe_id: str) -> bool:
+    def station_ok(self, recipe: dict, station_id: str | None) -> bool:
+        return station_allows(station_id, recipe.get("required_station"))
+
+    def craft(self, player, recipe_id: str, station_id: str | None = None) -> bool:
         recipe = RECIPES.get(recipe_id)
         if not recipe:
             self.message = "Receita inexistente."
             return False
         if recipe_id not in self.unlocked_recipes(player):
             self.message = "Receita bloqueada."
+            return False
+        if not self.station_ok(recipe, station_id):
+            required = friendly_station_name(recipe.get("required_station"))
+            self.message = f"Requer estacao: {required}."
             return False
         ingredients = recipe["ingredients"]
         output_id, amount = recipe["output"]
@@ -44,7 +52,11 @@ class CraftingSystem:
                 else:
                     player.inventory.add_item(item_id, qty)
             return False
-        player.skills.add_xp("Construcao", 4)
-        player.skills.add_xp("Sobrevivencia", 3)
+        xp_skill = recipe.get("xp_skill")
+        if xp_skill:
+            player.skills.add_xp(xp_skill, int(recipe.get("xp", 8)))
+        else:
+            player.skills.add_xp("Construcao", 4)
+            player.skills.add_xp("Sobrevivencia", 3)
         self.message = f"Criou {recipe['name']}."
         return True

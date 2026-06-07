@@ -39,7 +39,9 @@ O projeto usa `pygame-ce>=2.5,<3`. No PyPI, a linha 2.5.x e a linha estavel atua
 - HUD com HP, XP, fome, sede, energia, mana, moedas, relogio, clima, hotbar e minimapa.
 - Inventario com slots, hotbar, descricao, usar, equipar, dropar e drag-and-drop.
 - Mochila equipavel com inventario lateral; se for dropada, o conteudo continua dentro dela.
+- Sistema modular de alimentos, bebidas e pocoes carregado de `src/data/foods.json`.
 - Consumo por `Q` do item consumivel equipado, sempre 1 unidade por vez.
+- Consumiveis aplicam `Vida`, `Fome`, `Sede`, `Energia`, `Mana` e `mana_percent`, com efeitos positivos e negativos respeitando os limites do jogador.
 - Coleta com ferramentas: arvores, pedras, minerio, arbustos e solo.
 - NPC vendedor fisico no mapa; loja abre apenas por proximidade.
 - Precos com desconto por Comunicacao e bonus de venda por Comercio/Politica.
@@ -48,7 +50,7 @@ O projeto usa `pygame-ce>=2.5,<3`. No PyPI, a linha 2.5.x e a linha estavel atua
 - Animais iniciais: porcos, vacas e galinhas, com drops de carne, couro, pele, penas e ovos.
 - Sistema de fome/sede ajustado: fome cai 1 a cada 10s; sede cai 2 a cada 10s e 5 a cada 10s correndo.
 - Corrida fica bloqueada se fome ou sede estiverem abaixo de 30%.
-- Loja vende Copo de Agua barato, que recupera 15 de sede, e Copo Vazio.
+- Loja vende Copo de Agua barato, que recupera 15 de sede, Copo Vazio e itens compraveis liberados pelo JSON conforme vendedor, level e raridade.
 - Copo Vazio pode ser equipado e enchido com `E` perto de rios ou lagos.
 - Morte real: ao chegar a 0 HP, o jogador dropa os itens no chao, volta ao spawn e recebe mensagem "Voce morreu".
 - Particulas para coleta, impacto, corrida, magia e coleta de itens.
@@ -59,7 +61,9 @@ O projeto usa `pygame-ce>=2.5,<3`. No PyPI, a linha 2.5.x e a linha estavel atua
 - Estruturas colocadas com interface, como bancada, fogao e bau, abrem com `E` quando o personagem esta perto.
 - Bau Pequeno craftavel com 12 slots, drag-and-drop com inventario/mochila, save/load do conteudo e quebra com machado dropando tudo.
 - XP de recursos rebalanceado: arvores e arbustos 1 XP, pedras 3 XP, minerios 5 XP; combate escala mais XP por nivel do inimigo.
-- Fogao de pedra com interface para assar carnes e peixes.
+- Fogueira e Fogao de pedra com interface de cozinha para assar carnes/peixes crus e preparar receitas, sucos e pocoes permitidos pela estacao.
+- Receitas craftaveis do JSON verificam estacao, habilidade, ingredientes, espaco no inventario e dao XP na habilidade relacionada.
+- Drops de alimentos podem ser rolados por fonte usando raridade, chance e quantidade do JSON.
 - Tochas iluminam a noite e apagam durante chuva/tempestade.
 - Mapa/minimapa com exploracao revelada.
 - Save/load em JSON em `saves/save_01.json`.

@@ -7,6 +7,7 @@ from src.data.classes_data import CLASSES
 from src.data.items_data import ITEMS
 from src.entities.entity import Entity
 from src.items.item import make_item
+from src.systems.consumable_system import ConsumableSystem
 from src.systems.inventory_system import Inventory, InventorySlot
 from src.systems.level_system import LevelSystem
 from src.systems.skill_system import SkillTree
@@ -31,7 +32,9 @@ class Player(Entity):
         self.base_speed = Settings.PLAYER_BASE_SPEED + int(class_data.get("speed_bonus", 0))
         self.defense = max(0, int(class_data.get("defense_bonus", 0)))
         self.hunger = 100.0
+        self.max_hunger = 100
         self.thirst = 100.0
+        self.max_thirst = 100
         self.energy = 100.0
         self.max_energy = 100
         self.mana = float(class_data.get("mana", 30))
@@ -50,6 +53,7 @@ class Player(Entity):
         self.is_running = False
         self.equipped_backpack_slot: int | None = None
         self._zero_need_damage_timer = 0.0
+        self.last_consumable_result: dict | None = None
         self._give_starting_items()
 
     def _give_starting_items(self) -> None:
@@ -156,6 +160,25 @@ class Player(Entity):
 
     def equipped_item(self):
         return self.inventory.selected_item()
+
+    @property
+    def health(self) -> float:
+        return self.hp
+
+    @health.setter
+    def health(self, value: float) -> None:
+        self.hp = max(0.0, min(self.max_hp, float(value)))
+        if self.hp <= 0:
+            self.alive = False
+
+    @property
+    def max_health(self) -> float:
+        return self.max_hp
+
+    @max_health.setter
+    def max_health(self, value: float) -> None:
+        self.max_hp = max(1, int(value))
+        self.hp = min(self.hp, self.max_hp)
 
     def equipped_backpack(self) -> InventorySlot | None:
         if self.equipped_backpack_slot is None:
@@ -297,15 +320,9 @@ class Player(Entity):
             if inventory is self.inventory:
                 self.inventory.selected_slot = index
             return True
-        if item.data.get("heal"):
-            self.heal(int(item.data["heal"]))
-        if item.data.get("hunger"):
-            self.hunger = min(100, self.hunger + int(item.data["hunger"]))
-        if item.data.get("thirst"):
-            self.thirst = min(100, self.thirst + int(item.data["thirst"]))
-        if item.data.get("energy"):
-            self.energy = min(self.max_energy, self.energy + int(item.data["energy"]))
-        inventory.remove_from_slot(index, 1)
+        self.last_consumable_result = ConsumableSystem().consume(self, inventory, item.item_id, index)
+        if not self.last_consumable_result["success"]:
+            return False
         self.skills.add_xp("Sobrevivencia", 2)
         return True
 
@@ -363,9 +380,13 @@ class Player(Entity):
             "hp": self.hp,
             "max_hp": self.max_hp,
             "hunger": self.hunger,
+            "max_hunger": self.max_hunger,
             "thirst": self.thirst,
+            "max_thirst": self.max_thirst,
             "energy": self.energy,
+            "max_energy": self.max_energy,
             "mana": self.mana,
+            "max_mana": self.max_mana,
             "coins": self.coins,
             "inventory": self.inventory.to_list(),
             "selected_slot": self.inventory.selected_slot,
@@ -380,9 +401,13 @@ class Player(Entity):
         player.hp = float(data.get("hp", player.hp))
         player.max_hp = int(data.get("max_hp", player.max_hp))
         player.hunger = float(data.get("hunger", 100))
+        player.max_hunger = int(data.get("max_hunger", 100))
         player.thirst = float(data.get("thirst", 100))
+        player.max_thirst = int(data.get("max_thirst", 100))
         player.energy = float(data.get("energy", 100))
+        player.max_energy = int(data.get("max_energy", player.max_energy))
         player.mana = float(data.get("mana", player.mana))
+        player.max_mana = float(data.get("max_mana", player.max_mana))
         player.coins = int(data.get("coins", Settings.STARTING_COINS))
         player.inventory = Inventory.from_list(data.get("inventory", []), capacity=20)
         player.inventory.selected_slot = int(data.get("selected_slot", 0))

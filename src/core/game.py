@@ -14,15 +14,18 @@ from src.core.save_manager import SaveManager
 from src.core.settings import COLORS, Settings
 from src.data.animals_data import ANIMAL_ORDER
 from src.data.enemies_data import ENEMY_ORDER
+from src.data.food_data import friendly_station_name
 from src.data.items_data import ITEMS
-from src.data.recipes_data import COOKING_RECIPES
 from src.entities.animal import Animal
 from src.entities.enemy import Enemy
 from src.entities.npc import NPC
 from src.entities.player import Player
 from src.systems.building_system import BUILDING_COSTS, BuildingSystem
 from src.systems.combat_system import CombatSystem
+from src.systems.consumable_system import ConsumableSystem
+from src.systems.cooking_system import CookingSystem
 from src.systems.crafting_system import CraftingSystem
+from src.systems.drop_system import DropSystem
 from src.systems.economy_system import EconomySystem
 from src.systems.inventory_system import Inventory, InventorySlot
 from src.systems.map_exploration_system import MapExplorationSystem
@@ -76,10 +79,14 @@ class Game:
         self.npcs: list[NPC] = []
         self.enemies: list[Enemy] = []
         self.animals: list[Animal] = []
+        self._rng = random.Random(42)
 
         self.economy = EconomySystem()
         self.shop_system = ShopSystem(self.economy)
         self.combat_system = CombatSystem()
+        self.consumable_system = ConsumableSystem()
+        self.cooking_system = CookingSystem()
+        self.drop_system = DropSystem(self._rng)
         self.time_system = TimeSystem()
         self.weather_system = WeatherSystem()
         self.particles = ParticleManager()
@@ -101,7 +108,6 @@ class Game:
         self.craft_search = ""
         self.active_structure = None
         self.death_message_timer = 0.0
-        self._rng = random.Random(42)
 
     def run(self) -> None:
         while self.running:
@@ -204,6 +210,7 @@ class Game:
                     self.particles,
                     self.notifications,
                     self.animals,
+                    self.drop_system,
                 )
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3 and self.active_panel is None:
             mouse_world = self.camera.screen_to_world(event.pos)
@@ -270,8 +277,7 @@ class Game:
         if not item.is_consumable():
             self.notifications.push("Item equipado nao e consumivel.")
             return
-        if self.player.use_slot(slot_index):
-            self.notifications.push(f"Consumiu 1 {item.name}.")
+        self._consume_inventory_slot("main", slot_index)
 
     def _handle_inventory_action(self, action) -> None:
         if not action or not self.player or not self.world:
@@ -280,7 +286,12 @@ class Game:
         if kind == "use_slot":
             _, source, index = action
             inventory = self._inventory_for_source(source)
-            if inventory and self.player.use_inventory_slot(inventory, index):
+            if not inventory or not (0 <= index < inventory.capacity):
+                return
+            slot = inventory.slots[index]
+            if slot and slot.item.is_consumable():
+                self._consume_inventory_slot(source, index)
+            elif inventory and self.player.use_inventory_slot(inventory, index):
                 self.notifications.push("Item usado.")
         elif kind == "equip_slot":
             _, source, index = action
@@ -309,6 +320,29 @@ class Game:
         elif kind == "move_slot":
             _, from_source, from_index, to_source, to_index = action
             self._move_between_inventories(from_source, from_index, to_source, to_index)
+
+    def _consume_inventory_slot(self, source: str, index: int) -> bool:
+        if not self.player:
+            return False
+        inventory = self._inventory_for_source(source)
+        if not inventory or not (0 <= index < inventory.capacity):
+            self.notifications.push("Item nao encontrado.")
+            return False
+        slot = inventory.slots[index]
+        if not slot:
+            self.notifications.push("Nenhum item consumivel equipado.")
+            return False
+        result = self.consumable_system.consume(self.player, inventory, slot.item_id, index)
+        self.notifications.push(result["message"])
+        if not result["success"]:
+            return False
+        for line in result.get("effect_lines", [])[:5]:
+            self.notifications.push(line)
+        color = ITEMS[slot.item_id].get("icon_color", COLORS["accent_2"])
+        if self.world:
+            self.particles.emit(self.player.center, color=color, amount=9, speed=55, lifetime=0.45, radius=3)
+        self.player.skills.add_xp("Sobrevivencia", 2)
+        return True
 
     def _inventory_for_source(self, source: str):
         if not self.player:
@@ -453,7 +487,7 @@ class Game:
                 elif isinstance(action, tuple) and action[0] == "select_recipe":
                     self.selected_recipe_id = action[1]
                 elif isinstance(action, tuple) and action[0] == "craft":
-                    self.crafting_system.craft(self.player, action[1])
+                    self.crafting_system.craft(self.player, action[1], station_id=self._active_station_id())
                     self.notifications.push(self.crafting_system.message)
 
     def _handle_cooking_event(self, event) -> None:
@@ -468,6 +502,11 @@ class Game:
                     self.active_panel = None
                 elif isinstance(action, tuple) and action[0] == "cook":
                     self._cook_item(action[1])
+                elif isinstance(action, tuple) and action[0] == "craft_food":
+                    self.crafting_system.craft(self.player, action[1], station_id=self._active_station_id())
+                    self.notifications.push(self.crafting_system.message)
+                    if self.crafting_system.message.startswith("Criou"):
+                        self.particles.emit(self.player.center, color=COLORS["accent_2"], amount=10, speed=60, lifetime=0.45, radius=3)
 
     def _handle_chest_event(self, event) -> None:
         if not self.player:
@@ -508,28 +547,15 @@ class Game:
     def _cook_item(self, raw_id: str) -> None:
         if not self.player:
             return
-        recipe = COOKING_RECIPES.get(raw_id)
-        if not recipe:
-            return
-        if hasattr(self.player, "can_receive_item") and not self.player.can_receive_item(recipe["output"], 1):
-            self.notifications.push("Inventario cheio. Libere espaco antes de cozinhar.")
-            return
-        if not self.player.inventory.remove_item(raw_id, 1):
-            backpack = self.player.backpack_contents()
-            removed = False
-            if backpack is not None:
-                temp = type(self.player.inventory)(len(backpack))
-                temp.slots = backpack
-                temp.capacity = len(backpack)
-                removed = temp.remove_item(raw_id, 1)
-            if not removed:
-                self.notifications.push("Ingrediente insuficiente.")
-                return
-        leftover = self.player.add_item(recipe["output"], 1)
-        if leftover:
-            self.world.spawn_ground_drop(self.player.center, recipe["output"], leftover)
-        self.player.skills.add_xp("Cozinhar", 7)
-        self.notifications.push(f"Cozinhou {ITEMS[recipe['output']]['name']}.")
+        result = self.cooking_system.cook(self.player, self.player.inventory, raw_id, self._active_station_id())
+        self.notifications.push(result["message"])
+        if result.get("success"):
+            self.particles.emit(self.player.center, color=(233, 125, 57), amount=11, speed=62, lifetime=0.5, radius=3)
+
+    def _active_station_id(self) -> str | None:
+        if self.active_structure:
+            return self.active_structure.building_id
+        return None
 
     def new_game(self, name: str, class_id: str) -> None:
         self.world = World(self.assets)
@@ -542,6 +568,9 @@ class Game:
         self.economy = EconomySystem()
         self.shop_system = ShopSystem(self.economy)
         self.combat_system = CombatSystem()
+        self.consumable_system = ConsumableSystem()
+        self.cooking_system = CookingSystem()
+        self.drop_system = DropSystem(self._rng)
         self.time_system = TimeSystem()
         self.weather_system = WeatherSystem()
         self.particles = ParticleManager()
@@ -903,9 +932,13 @@ class Game:
                 y += 28
 
             can_space = self.player.can_receive_item(output_id, amount) if hasattr(self.player, "can_receive_item") else self.player.inventory.can_accept_item(output_id, amount)
-            can_craft = can_materials and can_space
+            can_station = self.crafting_system.station_ok(selected, self._active_station_id())
+            can_craft = can_materials and can_space and can_station
             if not can_space:
                 draw_text(self.screen, "Inventario cheio", (detail_rect.x + 18, detail_rect.bottom - 86), COLORS["danger"], 14, bold=True)
+            elif not can_station:
+                required = friendly_station_name(selected.get("required_station"))
+                draw_text(self.screen, f"Requer: {required}", (detail_rect.x + 18, detail_rect.bottom - 86), COLORS["danger"], 14, bold=True)
             create = Button((detail_rect.x + 18, detail_rect.bottom - 54, 120, 36), "Criar", ("craft", self.selected_recipe_id), disabled=not can_craft)
             create.draw(self.screen)
             self.craft_buttons.append(create)
@@ -937,9 +970,24 @@ class Game:
             if data.get("tool_type"):
                 lines.append(f"Ferramenta do tipo {data['tool_type']}.")
         elif data.get("type") in {"food", "potion"}:
-            lines.append("Uso proprio: consuma pelo inventario para recuperar atributos.")
+            lines.append("Uso proprio: consuma pelo inventario ou pela hotbar com Q.")
+        elif data.get("type") == "drink":
+            lines.append("Bebida consumivel pela hotbar com Q.")
         else:
             lines.append("Material ou item de suporte para receitas futuras.")
+        recipe = data.get("recipe") or {}
+        if recipe.get("required_station"):
+            lines.append(f"Estacao: {friendly_station_name(recipe['required_station'])}.")
+        effects = data.get("effects") or {}
+        if effects:
+            for key, label in [("health", "Vida"), ("hunger", "Fome"), ("thirst", "Sede"), ("energy", "Energia"), ("mana", "Mana"), ("mana_percent", "Mana max")]:
+                value = effects.get(key)
+                if value:
+                    prefix = "+" if value > 0 else ""
+                    suffix = "%" if key == "mana_percent" else ""
+                    lines.append(f"{prefix}{value}{suffix} {label}.")
+        if effects:
+            return lines
         if data.get("heal"):
             lines.append(f"Recupera {data['heal']} HP.")
         if data.get("hunger"):
@@ -951,27 +999,62 @@ class Game:
     def _draw_cooking_panel(self) -> None:
         if not self.player:
             return
-        panel = pygame.Rect(self.screen.get_width() // 2 - 330, self.screen.get_height() // 2 - 230, 660, 460)
-        draw_panel(self.screen, panel, "Fogao de Pedra")
-        draw_text(self.screen, "Escolha uma carne ou peixe para assar.", (panel.x + 24, panel.y + 58), COLORS["white"], 15)
+        panel = pygame.Rect(self.screen.get_width() // 2 - 370, self.screen.get_height() // 2 - 290, 740, 580)
+        draw_panel(self.screen, panel, "Cozinha")
+        draw_text(self.screen, "Assar alimentos crus", (panel.x + 24, panel.y + 58), COLORS["accent"], 16, bold=True)
         self.cooking_buttons = []
-        y = panel.y + 100
-        for raw_id, recipe in COOKING_RECIPES.items():
+        y = panel.y + 88
+        station_id = self._active_station_id()
+        recipes = self.cooking_system.available_recipes(self.player, station_id)
+        recipe_items = sorted(
+            recipes.items(),
+            key=lambda item: (self.player.count_item(item[0]) <= 0, ITEMS[item[0]]["name"]),
+        )
+        for raw_id, recipe in recipe_items[:5]:
             owned = self.player.inventory.count(raw_id)
             backpack = self.player.backpack_contents()
             if backpack is not None:
                 owned += sum(slot.quantity for slot in backpack if slot and slot.item_id == raw_id)
-            row = pygame.Rect(panel.x + 24, y, panel.width - 48, 46)
+            row = pygame.Rect(panel.x + 24, y, panel.width - 48, 42)
             pygame.draw.rect(self.screen, COLORS["panel_dark"], row, border_radius=5)
-            self.screen.blit(self.assets.item_icon(raw_id, 28), (row.x + 8, row.y + 9))
-            self.screen.blit(self.assets.item_icon(recipe["output"], 28), (row.x + 248, row.y + 9))
-            draw_text(self.screen, f"{ITEMS[raw_id]['name']} x{owned}", (row.x + 46, row.y + 14), COLORS["white"], 14, bold=True)
-            draw_text(self.screen, "->", (row.x + 218, row.y + 14), COLORS["accent"], 14, bold=True)
-            draw_text(self.screen, ITEMS[recipe["output"]]["name"], (row.x + 286, row.y + 14), COLORS["white"], 14, bold=True)
-            button = Button((row.right - 86, row.y + 8, 74, 30), "Assar", ("cook", raw_id), disabled=owned <= 0)
+            self.screen.blit(self.assets.item_icon(raw_id, 26), (row.x + 8, row.y + 8))
+            self.screen.blit(self.assets.item_icon(recipe["output"], 26), (row.x + 274, row.y + 8))
+            draw_text(self.screen, f"{ITEMS[raw_id]['name']} x{owned}", (row.x + 44, row.y + 12), COLORS["white"], 13, bold=True)
+            draw_text(self.screen, "->", (row.x + 244, row.y + 12), COLORS["accent"], 13, bold=True)
+            draw_text(self.screen, ITEMS[recipe["output"]]["name"], (row.x + 310, row.y + 12), COLORS["white"], 13, bold=True)
+            button = Button((row.right - 86, row.y + 6, 74, 30), "Assar", ("cook", raw_id), disabled=owned <= 0)
             button.draw(self.screen)
             self.cooking_buttons.append(button)
-            y += 54
+            y += 48
+        if not recipes:
+            draw_text(self.screen, "Nenhuma receita valida nesta estacao.", (panel.x + 24, y + 8), COLORS["white"], 14)
+
+        y = panel.y + 350
+        draw_text(self.screen, "Preparos, sucos e pocoes", (panel.x + 24, y), COLORS["accent"], 16, bold=True)
+        y += 30
+        craft_recipes = [
+            (recipe_id, recipe)
+            for recipe_id, recipe in self.crafting_system.unlocked_recipes(self.player).items()
+            if recipe.get("source") == "foods.json" and self.crafting_system.station_ok(recipe, station_id)
+        ]
+        craft_recipes.sort(key=lambda item: ITEMS[item[1]["output"][0]]["name"])
+        for recipe_id, recipe in craft_recipes[:3]:
+            output_id, amount = recipe["output"]
+            ingredients = recipe["ingredients"]
+            can_materials = self.player.can_pay_items(ingredients)
+            can_space = self.player.can_receive_item(output_id, amount)
+            row = pygame.Rect(panel.x + 24, y, panel.width - 48, 42)
+            pygame.draw.rect(self.screen, COLORS["panel_dark"], row, border_radius=5)
+            self.screen.blit(self.assets.item_icon(output_id, 26), (row.x + 8, row.y + 8))
+            draw_text(self.screen, f"{ITEMS[output_id]['name']} x{amount}", (row.x + 44, row.y + 6), COLORS["white"], 13, bold=True)
+            cost = ", ".join(f"{qty} {ITEMS[item_id]['name']}" for item_id, qty in ingredients.items())
+            draw_text(self.screen, cost[:52], (row.x + 44, row.y + 23), (185, 192, 180), 11)
+            button = Button((row.right - 92, row.y + 6, 80, 30), "Criar", ("craft_food", recipe_id), disabled=not (can_materials and can_space))
+            button.draw(self.screen)
+            self.cooking_buttons.append(button)
+            y += 48
+        if not craft_recipes:
+            draw_text(self.screen, "Sem preparos liberados nesta estacao.", (panel.x + 24, y + 8), COLORS["white"], 14)
         close = Button((panel.centerx - 70, panel.bottom - 48, 140, 34), "Fechar", "close_cooking")
         close.draw(self.screen)
         self.cooking_buttons.append(close)
@@ -1129,7 +1212,7 @@ class Game:
             if structure.interface_kind() == "crafting":
                 return "E/clique - abrir bancada de crafting"
             if structure.interface_kind() == "cooking":
-                return "E/clique - abrir fogao"
+                return "E/clique - abrir cozinha"
             if structure.interface_kind() == "chest":
                 return "E/clique - abrir bau"
             return "E/clique - abrir interface"
@@ -1398,6 +1481,9 @@ class Game:
         self.building_system = BuildingSystem()
         self.particles = ParticleManager()
         self.combat_system = CombatSystem()
+        self.consumable_system = ConsumableSystem()
+        self.cooking_system = CookingSystem()
+        self.drop_system = DropSystem(self._rng)
         self.npcs = []
         for raw in data.get("npcs", []):
             npc = NPC(raw.get("name", "Mira"), raw.get("profession", "Vendedora"), raw.get("pos", self.world.vendor_pos), self.assets, bool(raw.get("vendor", False)))

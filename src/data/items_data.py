@@ -609,11 +609,20 @@ ITEMS = {
 }
 
 
+from src.data.food_data import food_items, missing_ingredient_items
+
+
+ITEMS.update(food_items())
+ITEMS.update(missing_ingredient_items(set(ITEMS)))
+
+
 CATEGORIES = [
     "Armas",
     "Ferramentas",
     "Comida",
+    "Bebidas",
     "Materiais",
+    "Ingredientes",
     "Sementes",
     "Pocoes",
     "Recursos",

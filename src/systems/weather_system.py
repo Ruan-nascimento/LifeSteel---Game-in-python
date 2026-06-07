@@ -5,7 +5,11 @@ class WeatherSystem:
     WEATHERS = ["Ensolarado", "Chuvoso", "Nublado", "Tempestade", "Nevoeiro"]
 
     def __init__(self) -> None:
-        self.current = "Ensolarado"
+        self.current = random.choices(
+            self.WEATHERS,
+            weights=[42, 22, 18, 8, 10],
+            k=1,
+        )[0]
         self._timer = 0.0
 
     def update(self, dt: float, new_day: bool = False) -> None:

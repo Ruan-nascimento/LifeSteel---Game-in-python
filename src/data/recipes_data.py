@@ -1,3 +1,6 @@
+from src.data.food_data import food_cooking_recipes, food_crafting_recipes
+
+
 RECIPES = {
     "stone_axe": {
         "name": "Machado de Pedra",
@@ -58,6 +61,9 @@ RECIPES = {
 }
 
 
+RECIPES.update(food_crafting_recipes())
+
+
 COOKING_RECIPES = {
     "raw_pork": {"output": "cooked_pork", "time": 4, "label": "Assar carne de porco"},
     "raw_beef": {"output": "cooked_beef", "time": 5, "label": "Assar bife"},
@@ -65,3 +71,6 @@ COOKING_RECIPES = {
     "small_fish": {"output": "cooked_fish", "time": 3, "label": "Assar peixe"},
     "raw_meat": {"output": "cooked_beef", "time": 4, "label": "Assar carne comum"},
 }
+
+
+COOKING_RECIPES.update(food_cooking_recipes())

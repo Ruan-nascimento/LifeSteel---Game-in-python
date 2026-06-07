@@ -9,7 +9,7 @@ class CombatSystem:
     def __init__(self) -> None:
         self.message = "Combate pronto."
 
-    def player_attack(self, player, world, enemies, mouse_world_pos, particles, notifications, animals=None) -> None:
+    def player_attack(self, player, world, enemies, mouse_world_pos, particles, notifications, animals=None, drop_system=None) -> None:
         if player.attack_timer > 0:
             return
         item = player.equipped_item()
@@ -31,7 +31,7 @@ class CombatSystem:
 
         target_resource = world.resource_near_point(mouse_world_pos, item.range, player.center)
         if target_resource:
-            self._attack_resource(player, target_resource, item, world, particles, notifications)
+            self._attack_resource(player, target_resource, item, world, particles, notifications, drop_system)
             return
 
         hit_any = False
@@ -67,14 +67,19 @@ class CombatSystem:
                 if not animal.alive:
                     player.skills.add_xp("Caca", 8)
                     player.level.add_xp(8)
-                    for item_id, amount in animal.drop_items().items():
+                    drops = animal.drop_items()
+                    if drop_system:
+                        for item_id in drop_system.controlled_item_ids(animal.kind):
+                            drops.pop(item_id, None)
+                        drops.update(drop_system.roll_drop(animal.kind, player.skills.level("Caca") - 1))
+                    for item_id, amount in drops.items():
                         world.spawn_ground_drop(animal.center, item_id, amount)
                         notifications.push(f"Drop: {amount} {world.item_name(item_id)}")
         if not hit_any:
             swing_pos = player.center + player.facing_vector * min(item.range, 48)
             particles.emit(swing_pos, color=(224, 221, 185), amount=5, speed=55, lifetime=0.22, radius=2)
 
-    def _attack_resource(self, player, resource, item, world, particles, notifications) -> None:
+    def _attack_resource(self, player, resource, item, world, particles, notifications, drop_system=None) -> None:
         if not resource.can_harvest_with(item):
             required = resource.required_tool or "ferramenta certa"
             notifications.push(f"Requer {required}.")
@@ -89,6 +94,10 @@ class CombatSystem:
         player.skills.add_xp(skill_name, 5)
         player.skills.add_xp("Coleta", 2)
         if drops:
+            if drop_system:
+                for item_id in drop_system.controlled_item_ids(resource.kind):
+                    drops.pop(item_id, None)
+                drops.update(drop_system.roll_drop(resource.kind, player.skills.level(resource.skill_name) - 1))
             for item_id, amount in drops.items():
                 world.spawn_ground_drop(resource.center, item_id, amount)
                 notifications.push(f"Drop: {amount} {world.item_name(item_id)}")

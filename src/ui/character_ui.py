@@ -52,8 +52,8 @@ class CharacterUI:
         draw_text(surface, class_data["description"], (x, y + 64), COLORS["white"], 15)
         stats = [
             f"HP: {int(player.hp)}/{player.max_hp}",
-            f"Fome: {int(player.hunger)}/100",
-            f"Sede: {int(player.thirst)}/100",
+            f"Fome: {int(player.hunger)}/{player.max_hunger}",
+            f"Sede: {int(player.thirst)}/{player.max_thirst}",
             f"Energia: {int(player.energy)}/{player.max_energy}",
             f"Mana: {int(player.mana)}/{int(player.max_mana)}",
             f"Level: {player.level.level}",

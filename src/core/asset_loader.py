@@ -259,6 +259,15 @@ class AssetLoader:
             if item_id == "water_cup":
                 pygame.draw.rect(surface, (72, 169, 224), (inset.x + 8, inset.centery, inset.width - 16, inset.height // 3), border_radius=2)
             pygame.draw.arc(surface, (72, 88, 89), (inset.right - 8, inset.y + 8, 8, 10), -1.2, 1.2, 2)
+        elif item_type == "drink":
+            pygame.draw.rect(surface, (218, 230, 232), (inset.x + 7, inset.y + 4, inset.width - 14, inset.height - 6), border_radius=4)
+            pygame.draw.rect(surface, (73, 86, 92), (inset.x + 7, inset.y + 4, inset.width - 14, inset.height - 6), 2, border_radius=4)
+            pygame.draw.rect(surface, color, (inset.x + 9, inset.centery, inset.width - 18, inset.height // 3), border_radius=2)
+            pygame.draw.line(surface, (232, 232, 205), (inset.centerx + 4, inset.y), (inset.centerx + 8, inset.y + 14), 2)
+        elif item_type == "potion":
+            pygame.draw.rect(surface, (196, 205, 214), (inset.centerx - 4, inset.y + 2, 8, 7), border_radius=2)
+            pygame.draw.polygon(surface, color, [(inset.centerx, inset.y + 8), (inset.x + 5, inset.bottom - 4), (inset.right - 5, inset.bottom - 4)])
+            pygame.draw.polygon(surface, (238, 242, 240), [(inset.centerx, inset.y + 10), (inset.x + 10, inset.bottom - 7), (inset.right - 10, inset.bottom - 7)], 1)
         elif item_id in {"campfire", "torch"}:
             pygame.draw.line(surface, (96, 58, 32), (inset.x + 5, inset.bottom - 3), (inset.right - 5, inset.bottom - 9), 4)
             pygame.draw.polygon(surface, (236, 89, 45), [(inset.centerx, inset.y + 2), (inset.x + 7, inset.bottom - 5), (inset.right - 7, inset.bottom - 5)])

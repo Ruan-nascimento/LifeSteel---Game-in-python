@@ -1,7 +1,27 @@
 from __future__ import annotations
 
+import unicodedata
+
 from src.data.items_data import ITEMS
 from src.data.shop_data import SHOP_STOCK
+
+
+DEFAULT_SELLERS = {
+    "vendedor geral",
+    "cozinheiro",
+    "pescador",
+    "agricultor",
+    "alquimista",
+    "ferreiro",
+    "cacador",
+}
+
+
+def seller_key(value: str | None) -> str:
+    if not value:
+        return ""
+    normalized = unicodedata.normalize("NFKD", value)
+    return normalized.encode("ascii", "ignore").decode("ascii").lower()
 
 
 class ShopSystem:
@@ -10,19 +30,26 @@ class ShopSystem:
         self.stock = [entry.copy() for entry in SHOP_STOCK]
         self.message = "Bem-vindo ao mercador da clareira."
 
-    def available_stock(self, player) -> list[dict]:
+    def available_stock(self, player, seller: str | None = None) -> list[dict]:
         result = []
+        compatible_sellers = {seller_key(seller)} if seller else DEFAULT_SELLERS
         for entry in self.stock:
+            if entry.get("seller") and seller_key(entry["seller"]) not in compatible_sellers:
+                continue
             entry = entry.copy()
             entry["locked"] = player.level.level < entry.get("required_level", 1)
             entry["final_price"] = self.economy.buy_price(entry["id"], entry["price"], player)
             result.append(entry)
         return result
 
-    def buy(self, player, item_id: str) -> bool:
+    def buy(self, player, item_id: str, seller: str | None = None) -> bool:
+        compatible_sellers = {seller_key(seller)} if seller else DEFAULT_SELLERS
         for entry in self.stock:
             if entry["id"] != item_id:
                 continue
+            if entry.get("seller") and seller_key(entry["seller"]) not in compatible_sellers:
+                self.message = "Este vendedor nao trabalha com esse item."
+                return False
             if player.level.level < entry.get("required_level", 1):
                 self.message = "Este item ainda esta bloqueado por level."
                 return False

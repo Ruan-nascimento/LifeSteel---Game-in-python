@@ -56,7 +56,7 @@ class Item:
         return self.type in {"weapon", "tool"}
 
     def is_consumable(self) -> bool:
-        return self.type in {"food", "potion"}
+        return self.type in {"food", "drink", "potion"}
 
     def is_building(self) -> bool:
         return self.type == "building"
@@ -89,6 +89,8 @@ def make_item(item_id: str) -> Item:
     elif item.type == "tool":
         item.__class__ = Tool
     elif item.type == "food":
+        item.__class__ = Food
+    elif item.type == "drink":
         item.__class__ = Food
     elif item.type == "material":
         item.__class__ = Material

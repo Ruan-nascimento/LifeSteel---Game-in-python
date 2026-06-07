@@ -38,12 +38,12 @@ class Structure:
         return pygame.Rect(self.tile[0] * Settings.TILE_SIZE, self.tile[1] * Settings.TILE_SIZE, width, height)
 
     def has_interface(self) -> bool:
-        return self.building_id in {"workbench", "stone_stove", "small_chest", "chest"}
+        return self.building_id in {"workbench", "campfire", "stone_stove", "small_chest", "chest"}
 
     def interface_kind(self) -> str | None:
         if self.building_id == "workbench":
             return "crafting"
-        if self.building_id == "stone_stove":
+        if self.building_id in {"campfire", "stone_stove"}:
             return "cooking"
         if self.building_id in {"small_chest", "chest"}:
             return "chest"

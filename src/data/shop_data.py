@@ -1,3 +1,6 @@
+from src.data.food_data import food_shop_stock
+
+
 SHOP_STOCK = [
     {
         "id": "stone_hoe",
@@ -108,3 +111,7 @@ SHOP_STOCK = [
         "stock": 2,
     },
 ]
+
+
+_existing_stock = {entry["id"] for entry in SHOP_STOCK}
+SHOP_STOCK.extend(entry for entry in food_shop_stock() if entry["id"] not in _existing_stock)

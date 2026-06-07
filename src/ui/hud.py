@@ -25,8 +25,8 @@ class HUD:
 
     def draw(self, surface: pygame.Surface, player, world, exploration, npcs, enemies, time_system, weather_system, interaction_text: str | None, notifications, quest_system, show_fps: bool, fps: float) -> None:
         self.draw_bar(surface, (16, 16), (220, 22), "HP", player.hp, player.max_hp, COLORS["hp"])
-        self.draw_bar(surface, (16, 43), (220, 18), "Fome", player.hunger, 100, COLORS["hunger"])
-        self.draw_bar(surface, (16, 66), (220, 18), "Sede", player.thirst, 100, COLORS["thirst"])
+        self.draw_bar(surface, (16, 43), (220, 18), "Fome", player.hunger, player.max_hunger, COLORS["hunger"])
+        self.draw_bar(surface, (16, 66), (220, 18), "Sede", player.thirst, player.max_thirst, COLORS["thirst"])
         self.draw_bar(surface, (16, 89), (220, 18), "Energia", player.energy, player.max_energy, COLORS["energy"])
         self.draw_bar(surface, (16, 112), (220, 18), "Mana", player.mana, player.max_mana, COLORS["mana"])
 

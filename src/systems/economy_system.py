@@ -12,8 +12,10 @@ class EconomySystem:
         return max(1, round(base_price * self.market_mood * (1 - min(discount, 0.35))))
 
     def sell_price(self, item_id: str, player) -> int:
-        base = int(ITEMS[item_id].get("price", 1))
+        item = ITEMS[item_id]
+        base = int(item.get("sell_price", item.get("price", 1)))
         bonus = player.skills.commerce_sell_bonus()
         if player.class_id == "diplomat":
             bonus += 0.08
-        return max(1, round(base * 0.55 * (1 + min(bonus, 0.45))))
+        multiplier = 1.0 if "sell_price" in item else 0.55
+        return max(1, round(base * multiplier * (1 + min(bonus, 0.45))))
