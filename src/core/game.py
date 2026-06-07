@@ -323,6 +323,9 @@ class Game:
         elif kind == "move_slot":
             _, from_source, from_index, to_source, to_index = action
             self._move_between_inventories(from_source, from_index, to_source, to_index)
+        elif kind == "shift_click_slot":
+            _, source, index = action
+            self._handle_shift_click(source, index)
 
     def _consume_inventory_slot(self, source: str, index: int) -> bool:
         if not self.player:
@@ -411,6 +414,63 @@ class Game:
             slot = self.player.inventory.slots[self.player.equipped_backpack_slot]
             if not slot or not slot.is_container():
                 self.player.equipped_backpack_slot = None
+
+    def _handle_shift_click(self, source: str, index: int) -> None:
+        if not self.player:
+            return
+        
+        inventory = self._inventory_for_source(source)
+        if not inventory or not (0 <= index < inventory.capacity):
+            return
+        slot = inventory.slots[index]
+        if not slot:
+            return
+
+        def _try_add_to_range(target_inv, start_idx, end_idx) -> bool:
+            if not target_inv:
+                return False
+            data = ITEMS.get(slot.item_id, {})
+            stackable = bool(data.get("stackable", True)) and slot.contents is None
+            max_stack = int(data.get("max_stack", 1 if not stackable else 99))
+            
+            if stackable:
+                for i in range(start_idx, end_idx):
+                    if target_inv.slots is inventory.slots and i == index:
+                        continue
+                    target_slot = target_inv.slots[i]
+                    if target_slot and target_slot.item_id == slot.item_id and target_slot.contents is None and target_slot.quantity < max_stack:
+                        moved = min(slot.quantity, max_stack - target_slot.quantity)
+                        target_slot.quantity += moved
+                        slot.quantity -= moved
+                        if slot.quantity <= 0:
+                            inventory.slots[index] = None
+                            return True
+            
+            for i in range(start_idx, end_idx):
+                if target_inv.slots is inventory.slots and i == index:
+                    continue
+                if target_inv.slots[i] is None:
+                    target_inv.slots[i] = slot
+                    inventory.slots[index] = None
+                    if inventory.slots is self.player.inventory.slots and index == self.player.equipped_backpack_slot:
+                        self.player.equipped_backpack_slot = None
+                    return True
+            return False
+
+        if source == "main":
+            if index < 5:
+                _try_add_to_range(self.player.inventory, 5, self.player.inventory.capacity)
+            else:
+                backpack_inv = self._inventory_for_source("backpack")
+                moved = False
+                if backpack_inv:
+                    moved = _try_add_to_range(backpack_inv, 0, backpack_inv.capacity)
+                if not moved:
+                    _try_add_to_range(self.player.inventory, 0, 5)
+        elif source == "backpack":
+            if not _try_add_to_range(self.player.inventory, 0, 5):
+                if not _try_add_to_range(self.player.inventory, 5, self.player.inventory.capacity):
+                    _try_add_to_range(inventory, 0, inventory.capacity)
 
     def _handle_shop_action(self, action) -> None:
         if not action or not self.player:
@@ -877,11 +937,16 @@ class Game:
         cols = 9
         start_x = grid_rect.x + 18
         start_y = grid_rect.y + 18
+        mouse_pos = pygame.mouse.get_pos()
+        hovered_recipe_output = None
+
         for index, (recipe_id, recipe) in enumerate(filtered[:54]):
             col = index % cols
             row = index // cols
             rect = pygame.Rect(start_x + col * (cell + gap), start_y + row * (cell + gap), cell, cell)
             output_id, amount = recipe["output"]
+            if rect.collidepoint(mouse_pos):
+                hovered_recipe_output = output_id
             can_materials = self.player.can_pay_items(recipe["ingredients"]) if hasattr(self.player, "can_pay_items") else self.player.inventory.can_pay(recipe["ingredients"])
             can_space = self.player.can_receive_item(output_id, amount) if hasattr(self.player, "can_receive_item") else self.player.inventory.can_accept_item(output_id, amount)
             selected = recipe_id == self.selected_recipe_id
@@ -951,6 +1016,11 @@ class Game:
         close.draw(self.screen)
         self.craft_buttons.append(close)
 
+        if hovered_recipe_output:
+            from src.items.item import make_item
+            from src.ui.widgets import draw_item_tooltip
+            draw_item_tooltip(self.screen, make_item(hovered_recipe_output), mouse_pos)
+
     def _craft_usage_lines(self, item_id: str) -> list[str]:
         data = ITEMS[item_id]
         lines: list[str] = []
@@ -1010,12 +1080,16 @@ class Game:
             recipes.items(),
             key=lambda item: (self.player.count_item(item[0]) <= 0, ITEMS[item[0]]["name"]),
         )
+        mouse_pos = pygame.mouse.get_pos()
+        hovered_cooking_item = None
         for raw_id, recipe in recipe_items[:5]:
             owned = self.player.inventory.count(raw_id)
             backpack = self.player.backpack_contents()
             if backpack is not None:
                 owned += sum(slot.quantity for slot in backpack if slot and slot.item_id == raw_id)
             row = pygame.Rect(panel.x + 24, y, panel.width - 48, 42)
+            if row.collidepoint(mouse_pos):
+                hovered_cooking_item = recipe["output"]
             pygame.draw.rect(self.screen, COLORS["panel_dark"], row, border_radius=5)
             self.screen.blit(self.assets.item_icon(raw_id, 26), (row.x + 8, row.y + 8))
             self.screen.blit(self.assets.item_icon(recipe["output"], 26), (row.x + 274, row.y + 8))
@@ -1044,6 +1118,8 @@ class Game:
             can_materials = self.player.can_pay_items(ingredients)
             can_space = self.player.can_receive_item(output_id, amount)
             row = pygame.Rect(panel.x + 24, y, panel.width - 48, 42)
+            if row.collidepoint(mouse_pos):
+                hovered_cooking_item = output_id
             pygame.draw.rect(self.screen, COLORS["panel_dark"], row, border_radius=5)
             self.screen.blit(self.assets.item_icon(output_id, 26), (row.x + 8, row.y + 8))
             draw_text(self.screen, f"{ITEMS[output_id]['name']} x{amount}", (row.x + 44, row.y + 6), COLORS["white"], 13, bold=True)
@@ -1058,6 +1134,11 @@ class Game:
         close = Button((panel.centerx - 70, panel.bottom - 48, 140, 34), "Fechar", "close_cooking")
         close.draw(self.screen)
         self.cooking_buttons.append(close)
+
+        if hovered_cooking_item:
+            from src.items.item import make_item
+            from src.ui.widgets import draw_item_tooltip
+            draw_item_tooltip(self.screen, make_item(hovered_cooking_item), mouse_pos)
 
     def _draw_chest_panel(self) -> None:
         if not self.player:
@@ -1106,6 +1187,17 @@ class Game:
         close = Button((panel.centerx - 70, panel.bottom - 46, 140, 34), "Fechar", "close_chest")
         close.draw(self.screen)
         self.chest_buttons.append(close)
+
+        mouse_pos = pygame.mouse.get_pos()
+        hovered_ref = self._chest_slot_at(mouse_pos)
+        if hovered_ref:
+            source, index = hovered_ref
+            inventory = self._inventory_for_source(source)
+            if inventory and index < inventory.capacity:
+                slot = inventory.slots[index]
+                if slot:
+                    from src.ui.widgets import draw_item_tooltip
+                    draw_item_tooltip(self.screen, slot.item, mouse_pos, slot)
 
     def _draw_chest_grid(self, surface, slots, source: str, start_index: int, x: int, y: int, columns: int) -> None:
         slot_size = 52

@@ -1,0 +1,2330 @@
+{
+    "item_system": {
+        "game": "LifeSteel",
+        "version": "1.0.0",
+        "max_level_scope": 5,
+        "currency": {
+            "name": "ZyraCoins",
+            "short": "ZC"
+        },
+        "description": "Sistema inicial de itens até o nível 5, incluindo armas, ferramentas, melhorias, livros, estações, itens utilitários e dados de loja.",
+        "general_rules": {
+            "level_unlock": "Itens podem exigir nível mínimo do jogador para compra, craft ou uso.",
+            "craftable": "Quando craftable for true, o item pode ser criado com receita.",
+            "buyable": "Quando buyable for true, o item pode ser comprado em lojas compatíveis.",
+            "findable": "Quando findable for true, o item pode ser encontrado em baús, ruínas, drops ou eventos.",
+            "sellable": "Quando sellable for true, o item pode ser vendido.",
+            "books": "Livros não são craftáveis. Eles podem ser comprados, encontrados ou vendidos. Alguns livros desbloqueiam habilidades ou aumentam XP de habilidades.",
+            "durability": "Ferramentas e armas podem ter durabilidade.",
+            "rarity_balance": "Itens mais fortes, raros ou com muitos benefícios devem ser mais caros, mais difíceis de craftar ou mais difíceis de encontrar."
+        }
+    },
+    "shop_vendors": [
+        {
+            "id": "vendor_milo_root",
+            "name": "Milo Raizforte",
+            "title": "Mercador da Clareira",
+            "shop_id": "forest_general_store",
+            "description": "Um vendedor viajante que montou uma pequena barraca próxima à floresta inicial. Vende ferramentas básicas, comida simples, livros comuns e materiais iniciais.",
+            "location_type": "forest_camp_store",
+            "available_from_level": 1,
+            "personality": "calmo, esperto e bom negociador",
+            "opening_hours": {
+                "open": "07:00",
+                "close": "20:00"
+            },
+            "dialogues": {
+                "first_meeting": "Ora, ora... alguém perdido na floresta? Tenho algumas coisas que podem te manter vivo.",
+                "normal": "Veja com calma. Ferramenta ruim quebra rápido, mas é melhor que mão vazia.",
+                "high_communication": "Você fala bem. Talvez eu consiga melhorar esse preço para você.",
+                "low_money": "Sem ZyraCoins, sem mercadoria. Mas talvez você tenha algo para vender."
+            },
+            "shop_features": {
+                "has_search_bar": true,
+                "has_scrollbar": true,
+                "can_buy": true,
+                "can_sell": true,
+                "can_filter_by_category": true,
+                "affected_by_communication_skill": true,
+                "affected_by_trade_skill": true
+            },
+            "categories_sold": [
+                "tool",
+                "weapon",
+                "food",
+                "material",
+                "book",
+                "utility",
+                "station"
+            ]
+        }
+    ],
+    "cooking_system": {
+        "description": "Sistema de cozimento inicial. Alimentos crus podem ser assados ou cozidos em estações diferentes. Cada estação possui multiplicador de velocidade.",
+        "base_cook_time_seconds": {
+            "very_simple": 5,
+            "simple": 8,
+            "normal": 12,
+            "complex": 16,
+            "advanced": 20
+        },
+        "stations": [
+            {
+                "id": "campfire",
+                "name": "Fogueira",
+                "type": "cooking_station",
+                "required_level": 1,
+                "speed_multiplier": 1.25,
+                "description": "Estação inicial de cozimento. É mais lenta, mas fácil de construir.",
+                "can_cook_categories": [
+                    "raw_meat",
+                    "raw_fish",
+                    "simple_meal"
+                ]
+            },
+            {
+                "id": "stone_furnace",
+                "name": "Fornalha de Pedra",
+                "type": "cooking_station",
+                "required_level": 2,
+                "speed_multiplier": 0.9,
+                "description": "Cozinha mais rápido que a fogueira e também pode fundir minérios simples.",
+                "can_cook_categories": [
+                    "raw_meat",
+                    "raw_fish",
+                    "simple_meal",
+                    "ore"
+                ]
+            },
+            {
+                "id": "clay_oven",
+                "name": "Forno de Barro",
+                "type": "cooking_station",
+                "required_level": 3,
+                "speed_multiplier": 0.75,
+                "description": "Ótimo para pratos mais elaborados e pães simples.",
+                "can_cook_categories": [
+                    "raw_meat",
+                    "raw_fish",
+                    "simple_meal",
+                    "advanced_meal",
+                    "bread"
+                ]
+            },
+            {
+                "id": "iron_stove",
+                "name": "Fogão de Ferro",
+                "type": "cooking_station",
+                "required_level": 5,
+                "speed_multiplier": 0.55,
+                "description": "Estação avançada para refeições melhores e cozimento rápido.",
+                "can_cook_categories": [
+                    "raw_meat",
+                    "raw_fish",
+                    "simple_meal",
+                    "advanced_meal",
+                    "soup",
+                    "juice"
+                ]
+            }
+        ]
+    },
+    "items": [
+        {
+            "id": "stone_axe",
+            "name": "Machado de Pedra",
+            "type": "tool",
+            "category": "axe",
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Ferramenta básica usada para cortar árvores pequenas e médias.",
+            "functionalities": {
+                "can_cut_trees": true,
+                "can_attack": true,
+                "can_mine": false,
+                "can_dig": false,
+                "can_till_soil": false,
+                "can_fish": false,
+                "can_cast_magic": false
+            },
+            "stats": {
+                "damage": 6,
+                "attack_speed": 0.85,
+                "range": 32,
+                "energy_cost": 6,
+                "durability": 80
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 150,
+            "sell_price": 45,
+            "recipe": {
+                "required_station": "workbench_basic",
+                "required_skill": {
+                    "skill": "construcao",
+                    "level": 1
+                },
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 3
+                    },
+                    {
+                        "id": "stone",
+                        "quantity": 4
+                    },
+                    {
+                        "id": "fiber",
+                        "quantity": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "stone_pickaxe",
+            "name": "Picareta de Pedra",
+            "type": "tool",
+            "category": "pickaxe",
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Ferramenta básica para quebrar pedras e minerar minérios simples.",
+            "functionalities": {
+                "can_cut_trees": false,
+                "can_attack": true,
+                "can_mine": true,
+                "can_dig": false,
+                "can_till_soil": false,
+                "can_fish": false,
+                "can_cast_magic": false
+            },
+            "stats": {
+                "damage": 5,
+                "mining_power": 1,
+                "attack_speed": 0.75,
+                "range": 30,
+                "energy_cost": 7,
+                "durability": 85
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 160,
+            "sell_price": 48,
+            "recipe": {
+                "required_station": "workbench_basic",
+                "required_skill": {
+                    "skill": "construcao",
+                    "level": 1
+                },
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 3
+                    },
+                    {
+                        "id": "stone",
+                        "quantity": 5
+                    },
+                    {
+                        "id": "fiber",
+                        "quantity": 1
+                    }
+                ]
+            }
+        },
+        {
+            "id": "stone_shovel",
+            "name": "Pá de Pedra",
+            "type": "tool",
+            "category": "shovel",
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Usada para cavar terra, remover areia e procurar minhocas ou pequenos recursos.",
+            "functionalities": {
+                "can_cut_trees": false,
+                "can_attack": true,
+                "can_mine": false,
+                "can_dig": true,
+                "can_till_soil": false,
+                "can_fish": false,
+                "can_cast_magic": false
+            },
+            "stats": {
+                "damage": 3,
+                "dig_power": 1,
+                "attack_speed": 0.95,
+                "range": 28,
+                "energy_cost": 5,
+                "durability": 75
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 100,
+            "sell_price": 30,
+            "recipe": {
+                "required_station": "workbench_basic",
+                "required_skill": {
+                    "skill": "construcao",
+                    "level": 1
+                },
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 2
+                    },
+                    {
+                        "id": "stone",
+                        "quantity": 3
+                    },
+                    {
+                        "id": "fiber",
+                        "quantity": 1
+                    }
+                ]
+            }
+        },
+        {
+            "id": "stone_hoe",
+            "name": "Enxada de Pedra",
+            "type": "tool",
+            "category": "hoe",
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Usada para preparar solo para plantio.",
+            "functionalities": {
+                "can_cut_trees": false,
+                "can_attack": true,
+                "can_mine": false,
+                "can_dig": false,
+                "can_till_soil": true,
+                "can_fish": false,
+                "can_cast_magic": false
+            },
+            "stats": {
+                "damage": 3,
+                "till_power": 1,
+                "attack_speed": 0.9,
+                "range": 28,
+                "energy_cost": 5,
+                "durability": 75
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 120,
+            "sell_price": 36,
+            "recipe": {
+                "required_station": "workbench_basic",
+                "required_skill": {
+                    "skill": "construcao",
+                    "level": 1
+                },
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 2
+                    },
+                    {
+                        "id": "stone",
+                        "quantity": 4
+                    },
+                    {
+                        "id": "fiber",
+                        "quantity": 1
+                    }
+                ]
+            }
+        },
+        {
+            "id": "basic_fishing_rod",
+            "name": "Vara de Pesca Simples",
+            "type": "tool",
+            "category": "fishing_rod",
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Permite pescar em rios e lagos rasos.",
+            "functionalities": {
+                "can_cut_trees": false,
+                "can_attack": false,
+                "can_mine": false,
+                "can_dig": false,
+                "can_till_soil": false,
+                "can_fish": true,
+                "can_cast_magic": false
+            },
+            "stats": {
+                "fishing_power": 1,
+                "energy_cost": 4,
+                "durability": 70
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 130,
+            "sell_price": 39,
+            "recipe": {
+                "required_station": "workbench_basic",
+                "required_skill": {
+                    "skill": "construcao",
+                    "level": 1
+                },
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 4
+                    },
+                    {
+                        "id": "fiber",
+                        "quantity": 5
+                    }
+                ]
+            }
+        },
+        {
+            "id": "wooden_sword",
+            "name": "Espada de Madeira",
+            "type": "weapon",
+            "category": "sword",
+            "class_affinity": [
+                "guerreiro",
+                "explorador"
+            ],
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Arma inicial simples. Boa para defesa básica.",
+            "functionalities": {
+                "can_attack": true,
+                "can_block": false,
+                "can_cast_magic": false,
+                "can_cut_trees": false,
+                "can_mine": false
+            },
+            "stats": {
+                "damage": 7,
+                "attack_speed": 1.1,
+                "range": 36,
+                "energy_cost": 5,
+                "durability": 70
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 90,
+            "sell_price": 25,
+            "recipe": {
+                "required_station": "workbench_basic",
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 5
+                    },
+                    {
+                        "id": "fiber",
+                        "quantity": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "training_dagger",
+            "name": "Adaga de Treino",
+            "type": "weapon",
+            "category": "dagger",
+            "class_affinity": [
+                "explorador",
+                "diplomata"
+            ],
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Arma rápida, fraca e útil para personagens ágeis.",
+            "functionalities": {
+                "can_attack": true,
+                "can_backstab": false,
+                "can_cast_magic": false
+            },
+            "stats": {
+                "damage": 5,
+                "attack_speed": 1.55,
+                "range": 24,
+                "energy_cost": 3,
+                "critical_chance": 0.04,
+                "durability": 60
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 85,
+            "sell_price": 24,
+            "recipe": {
+                "required_station": "workbench_basic",
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 2
+                    },
+                    {
+                        "id": "stone",
+                        "quantity": 3
+                    },
+                    {
+                        "id": "fiber",
+                        "quantity": 1
+                    }
+                ]
+            }
+        },
+        {
+            "id": "cracked_staff",
+            "name": "Cajado Rachado",
+            "type": "weapon",
+            "category": "staff",
+            "class_affinity": [
+                "mago"
+            ],
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Cajado antigo e instável. Permite lançar uma pequena faísca mágica.",
+            "functionalities": {
+                "can_attack": true,
+                "can_cast_magic": true,
+                "can_block": false
+            },
+            "stats": {
+                "damage": 4,
+                "magic_damage": 7,
+                "attack_speed": 0.9,
+                "range": 120,
+                "energy_cost": 1,
+                "mana_cost": 6,
+                "durability": 65
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 140,
+            "sell_price": 40
+        },
+        {
+            "id": "simple_scythe",
+            "name": "Foice Simples",
+            "type": "weapon",
+            "category": "scythe",
+            "class_affinity": [
+                "agricultor"
+            ],
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Ferramenta agrícola que também pode ser usada como arma improvisada.",
+            "functionalities": {
+                "can_attack": true,
+                "can_cut_grass": true,
+                "can_harvest": true,
+                "can_cast_magic": false
+            },
+            "stats": {
+                "damage": 6,
+                "attack_speed": 1.0,
+                "range": 34,
+                "energy_cost": 5,
+                "durability": 80
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 110,
+            "sell_price": 33,
+            "recipe": {
+                "required_station": "workbench_basic",
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 3
+                    },
+                    {
+                        "id": "stone",
+                        "quantity": 4
+                    }
+                ]
+            }
+        },
+        {
+            "id": "wooden_baton",
+            "name": "Bastão de Madeira",
+            "type": "weapon",
+            "category": "baton",
+            "class_affinity": [
+                "diplomata"
+            ],
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Bastão simples. Não é poderoso, mas ajuda a manter distância.",
+            "functionalities": {
+                "can_attack": true,
+                "can_stun": true,
+                "can_cast_magic": false
+            },
+            "stats": {
+                "damage": 4,
+                "attack_speed": 1.0,
+                "range": 42,
+                "energy_cost": 4,
+                "stun_chance": 0.04,
+                "durability": 70
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 80,
+            "sell_price": 22,
+            "recipe": {
+                "required_station": "workbench_basic",
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 4
+                    },
+                    {
+                        "id": "fiber",
+                        "quantity": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "copper_sword",
+            "name": "Espada de Cobre",
+            "type": "weapon",
+            "category": "sword",
+            "class_affinity": [
+                "guerreiro"
+            ],
+            "required_level": 2,
+            "rarity": "uncommon",
+            "description": "Espada melhorada com lâmina de cobre. Mais durável e confiável.",
+            "functionalities": {
+                "can_attack": true,
+                "can_block": false
+            },
+            "stats": {
+                "damage": 12,
+                "attack_speed": 1.1,
+                "range": 38,
+                "energy_cost": 6,
+                "durability": 120
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": false,
+            "buy_price": 320,
+            "sell_price": 120,
+            "recipe": {
+                "required_station": "stone_furnace",
+                "required_skill": {
+                    "skill": "combate",
+                    "level": 2
+                },
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 4
+                    },
+                    {
+                        "id": "copper_ingot",
+                        "quantity": 3
+                    },
+                    {
+                        "id": "fiber",
+                        "quantity": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "copper_axe",
+            "name": "Machado de Cobre",
+            "type": "tool",
+            "category": "axe",
+            "required_level": 3,
+            "rarity": "uncommon",
+            "description": "Corta árvores mais rápido que o machado de pedra.",
+            "functionalities": {
+                "can_cut_trees": true,
+                "can_attack": true,
+                "can_cut_hardwood": false
+            },
+            "stats": {
+                "damage": 10,
+                "woodcutting_power": 2,
+                "attack_speed": 0.95,
+                "range": 34,
+                "energy_cost": 6,
+                "durability": 150
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": false,
+            "buy_price": 430,
+            "sell_price": 170,
+            "recipe": {
+                "required_station": "stone_furnace",
+                "required_skill": {
+                    "skill": "lenhador",
+                    "level": 2
+                },
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 5
+                    },
+                    {
+                        "id": "copper_ingot",
+                        "quantity": 4
+                    },
+                    {
+                        "id": "leather_strip",
+                        "quantity": 1
+                    }
+                ]
+            }
+        },
+        {
+            "id": "copper_pickaxe",
+            "name": "Picareta de Cobre",
+            "type": "tool",
+            "category": "pickaxe",
+            "required_level": 3,
+            "rarity": "uncommon",
+            "description": "Permite minerar cobre com mais eficiência e pedras mais resistentes.",
+            "functionalities": {
+                "can_mine": true,
+                "can_attack": true,
+                "can_mine_copper": true,
+                "can_mine_iron": false
+            },
+            "stats": {
+                "damage": 8,
+                "mining_power": 2,
+                "attack_speed": 0.85,
+                "range": 32,
+                "energy_cost": 7,
+                "durability": 155
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": false,
+            "buy_price": 460,
+            "sell_price": 180,
+            "recipe": {
+                "required_station": "stone_furnace",
+                "required_skill": {
+                    "skill": "mineracao",
+                    "level": 2
+                },
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 5
+                    },
+                    {
+                        "id": "copper_ingot",
+                        "quantity": 5
+                    }
+                ]
+            }
+        },
+        {
+            "id": "apprentice_staff",
+            "name": "Cajado de Aprendiz",
+            "type": "weapon",
+            "category": "staff",
+            "class_affinity": [
+                "mago"
+            ],
+            "required_level": 3,
+            "rarity": "uncommon",
+            "description": "Cajado básico para magos iniciantes. Estabiliza feitiços simples.",
+            "functionalities": {
+                "can_attack": true,
+                "can_cast_magic": true,
+                "can_charge_spell": true
+            },
+            "stats": {
+                "damage": 5,
+                "magic_damage": 14,
+                "attack_speed": 1.0,
+                "range": 150,
+                "mana_cost": 7,
+                "energy_cost": 1,
+                "durability": 120
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 380,
+            "sell_price": 140,
+            "recipe": {
+                "required_station": "workbench_basic",
+                "required_skill": {
+                    "skill": "magia",
+                    "level": 2
+                },
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 6
+                    },
+                    {
+                        "id": "mana_grape",
+                        "quantity": 1
+                    },
+                    {
+                        "id": "crystal_shard",
+                        "quantity": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "hunters_bow",
+            "name": "Arco do Caçador",
+            "type": "weapon",
+            "category": "bow",
+            "class_affinity": [
+                "explorador",
+                "guerreiro"
+            ],
+            "required_level": 3,
+            "rarity": "uncommon",
+            "description": "Arma de longo alcance. Exige flechas para atacar.",
+            "functionalities": {
+                "can_attack": true,
+                "requires_ammo": true,
+                "ammo_type": "arrow",
+                "can_cast_magic": false
+            },
+            "stats": {
+                "damage": 13,
+                "attack_speed": 0.8,
+                "range": 220,
+                "energy_cost": 5,
+                "critical_chance": 0.06,
+                "durability": 110
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 360,
+            "sell_price": 135,
+            "recipe": {
+                "required_station": "workbench_basic",
+                "required_skill": {
+                    "skill": "caca",
+                    "level": 2
+                },
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 8
+                    },
+                    {
+                        "id": "fiber",
+                        "quantity": 8
+                    },
+                    {
+                        "id": "leather_strip",
+                        "quantity": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "iron_sword",
+            "name": "Espada de Ferro",
+            "type": "weapon",
+            "category": "sword",
+            "class_affinity": [
+                "guerreiro"
+            ],
+            "required_level": 5,
+            "rarity": "rare",
+            "description": "Arma forte para o início do meio do jogo.",
+            "functionalities": {
+                "can_attack": true,
+                "can_block": true
+            },
+            "stats": {
+                "damage": 20,
+                "attack_speed": 1.0,
+                "range": 40,
+                "energy_cost": 8,
+                "block_reduction": 0.2,
+                "durability": 220
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": false,
+            "buy_price": 850,
+            "sell_price": 330,
+            "recipe": {
+                "required_station": "iron_stove",
+                "required_skill": {
+                    "skill": "combate",
+                    "level": 4
+                },
+                "ingredients": [
+                    {
+                        "id": "iron_ingot",
+                        "quantity": 5
+                    },
+                    {
+                        "id": "hardwood",
+                        "quantity": 2
+                    },
+                    {
+                        "id": "leather_strip",
+                        "quantity": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "iron_pickaxe",
+            "name": "Picareta de Ferro",
+            "type": "tool",
+            "category": "pickaxe",
+            "required_level": 5,
+            "rarity": "rare",
+            "description": "Permite minerar ferro e quebrar pedras resistentes.",
+            "functionalities": {
+                "can_mine": true,
+                "can_attack": true,
+                "can_mine_copper": true,
+                "can_mine_iron": true,
+                "can_mine_crystal": false
+            },
+            "stats": {
+                "damage": 12,
+                "mining_power": 3,
+                "attack_speed": 0.85,
+                "range": 34,
+                "energy_cost": 8,
+                "durability": 240
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": false,
+            "buy_price": 900,
+            "sell_price": 350,
+            "recipe": {
+                "required_station": "iron_stove",
+                "required_skill": {
+                    "skill": "mineracao",
+                    "level": 4
+                },
+                "ingredients": [
+                    {
+                        "id": "iron_ingot",
+                        "quantity": 5
+                    },
+                    {
+                        "id": "hardwood",
+                        "quantity": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "reinforced_backpack",
+            "name": "Mochila Reforçada",
+            "type": "upgrade",
+            "category": "inventory_upgrade",
+            "required_level": 2,
+            "rarity": "uncommon",
+            "description": "Aumenta a quantidade de slots do inventário.",
+            "functionalities": {
+                "adds_inventory_slots": true,
+                "slot_bonus": 8,
+                "consumed_on_use": true
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": false,
+            "findable": true,
+            "buy_price": 420,
+            "sell_price": 0,
+            "recipe": {
+                "required_station": "workbench_basic",
+                "required_skill": {
+                    "skill": "construcao",
+                    "level": 2
+                },
+                "ingredients": [
+                    {
+                        "id": "fiber",
+                        "quantity": 12
+                    },
+                    {
+                        "id": "leather_strip",
+                        "quantity": 4
+                    },
+                    {
+                        "id": "wood",
+                        "quantity": 3
+                    }
+                ]
+            }
+        },
+        {
+            "id": "canteen",
+            "name": "Cantil Simples",
+            "type": "utility",
+            "category": "water_container",
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Permite carregar água limpa ou coletar água para purificação.",
+            "functionalities": {
+                "can_store_water": true,
+                "water_capacity": 3,
+                "can_collect_dirty_water": true,
+                "can_collect_clean_water": true
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 180,
+            "sell_price": 60,
+            "recipe": {
+                "required_station": "workbench_basic",
+                "ingredients": [
+                    {
+                        "id": "leather_strip",
+                        "quantity": 3
+                    },
+                    {
+                        "id": "fiber",
+                        "quantity": 4
+                    }
+                ]
+            }
+        },
+        {
+            "id": "basic_workbench",
+            "name": "Bancada de Trabalho Simples",
+            "type": "station",
+            "category": "crafting_station",
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Estação básica para criar ferramentas simples, armas fracas e itens iniciais.",
+            "functionalities": {
+                "unlocks_crafting": true,
+                "station_id": "workbench_basic",
+                "can_craft_tools": true,
+                "can_craft_basic_weapons": true
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": false,
+            "findable": false,
+            "buy_price": 250,
+            "sell_price": 0,
+            "recipe": {
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 10
+                    },
+                    {
+                        "id": "stone",
+                        "quantity": 4
+                    }
+                ]
+            }
+        },
+        {
+            "id": "campfire_item",
+            "name": "Fogueira",
+            "type": "station",
+            "category": "cooking_station",
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Permite assar carnes e peixes lentamente.",
+            "functionalities": {
+                "station_id": "campfire",
+                "can_cook": true,
+                "cooking_speed_multiplier": 1.25,
+                "emits_light": true
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": false,
+            "findable": false,
+            "buy_price": 120,
+            "sell_price": 0,
+            "recipe": {
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 5
+                    },
+                    {
+                        "id": "stone",
+                        "quantity": 6
+                    },
+                    {
+                        "id": "fiber",
+                        "quantity": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "stone_furnace_item",
+            "name": "Fornalha de Pedra",
+            "type": "station",
+            "category": "cooking_smelting_station",
+            "required_level": 2,
+            "rarity": "uncommon",
+            "description": "Permite cozinhar mais rápido e transformar minério bruto em barras.",
+            "functionalities": {
+                "station_id": "stone_furnace",
+                "can_cook": true,
+                "can_smelt": true,
+                "cooking_speed_multiplier": 0.9
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": false,
+            "findable": false,
+            "buy_price": 480,
+            "sell_price": 0,
+            "recipe": {
+                "required_station": "workbench_basic",
+                "required_skill": {
+                    "skill": "construcao",
+                    "level": 2
+                },
+                "ingredients": [
+                    {
+                        "id": "stone",
+                        "quantity": 20
+                    },
+                    {
+                        "id": "clay",
+                        "quantity": 5
+                    },
+                    {
+                        "id": "wood",
+                        "quantity": 6
+                    }
+                ]
+            }
+        },
+        {
+            "id": "training_dummy",
+            "name": "Boneco de Treino",
+            "type": "utility",
+            "category": "skill_training",
+            "required_level": 2,
+            "rarity": "uncommon",
+            "description": "Permite treinar combate lentamente sem lutar contra inimigos.",
+            "functionalities": {
+                "can_train_skill": true,
+                "skill": "combate",
+                "xp_per_use": 2,
+                "daily_xp_limit": 30
+            },
+            "craftable": true,
+            "buyable": true,
+            "sellable": false,
+            "findable": false,
+            "buy_price": 350,
+            "sell_price": 0,
+            "recipe": {
+                "required_station": "workbench_basic",
+                "ingredients": [
+                    {
+                        "id": "wood",
+                        "quantity": 12
+                    },
+                    {
+                        "id": "fiber",
+                        "quantity": 8
+                    },
+                    {
+                        "id": "leather_strip",
+                        "quantity": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "book_lumberjack_basics",
+            "name": "Fundamentos do Lenhador",
+            "type": "book",
+            "category": "skill_book",
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Ensina técnicas básicas para cortar madeira sem desperdiçar energia.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 1,
+                "target_skill": "lenhador",
+                "skill_xp_reward": 35,
+                "can_unlock_skill": true,
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 90,
+            "sell_price": 35
+        },
+        {
+            "id": "book_stone_tools",
+            "name": "Ferramentas de Pedra para Iniciantes",
+            "type": "book",
+            "category": "crafting_book",
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Explica como criar e manter ferramentas de pedra.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 1,
+                "target_skill": "construcao",
+                "skill_xp_reward": 30,
+                "unlocks_recipes": [
+                    "stone_axe",
+                    "stone_pickaxe",
+                    "stone_shovel",
+                    "stone_hoe"
+                ],
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 100,
+            "sell_price": 40
+        },
+        {
+            "id": "book_basic_cooking",
+            "name": "Culinária de Fogueira",
+            "type": "book",
+            "category": "skill_book",
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Ensina o básico para assar carnes e peixes em fogueiras.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 1,
+                "target_skill": "cozinhar",
+                "skill_xp_reward": 40,
+                "unlocks_recipes": [
+                    "cooked_beef",
+                    "cooked_pork",
+                    "cooked_chicken",
+                    "cooked_river_fish"
+                ],
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 120,
+            "sell_price": 45
+        },
+        {
+            "id": "book_first_aid",
+            "name": "Primeiros Socorros da Clareira",
+            "type": "book",
+            "category": "survival_book",
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Melhora a compreensão do jogador sobre cura e recuperação.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 1,
+                "target_skill": "sobrevivencia",
+                "skill_xp_reward": 35,
+                "passive_bonus": {
+                    "health_from_food_bonus_percent": 2
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 110,
+            "sell_price": 42
+        },
+        {
+            "id": "book_beginner_mining",
+            "name": "Mineração para Mãos Cansadas",
+            "type": "book",
+            "category": "skill_book",
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Ajuda o jogador a minerar gastando menos energia.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 1,
+                "target_skill": "mineracao",
+                "skill_xp_reward": 35,
+                "passive_bonus": {
+                    "mining_energy_cost_reduction_percent": 2
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 100,
+            "sell_price": 40
+        },
+        {
+            "id": "book_talking_to_strangers",
+            "name": "Conversando com Estranhos",
+            "type": "book",
+            "category": "social_book",
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Livro simples sobre educação, barganha e primeiras impressões.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 1,
+                "target_skill": "comunicacao",
+                "skill_xp_reward": 45,
+                "passive_bonus": {
+                    "shop_discount_percent": 1
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 140,
+            "sell_price": 55
+        },
+        {
+            "id": "book_fishing_knots",
+            "name": "Nós de Pesca e Iscas Simples",
+            "type": "book",
+            "category": "skill_book",
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Melhora a pesca inicial e reduz a chance de perder peixes fáceis.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 1,
+                "target_skill": "pescar",
+                "skill_xp_reward": 40,
+                "passive_bonus": {
+                    "basic_fish_catch_chance_percent": 3
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 130,
+            "sell_price": 50
+        },
+        {
+            "id": "book_farmers_notes",
+            "name": "Anotações de um Agricultor",
+            "type": "book",
+            "category": "skill_book",
+            "required_level": 1,
+            "rarity": "common",
+            "description": "Ensina técnicas básicas de plantio.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 1,
+                "target_skill": "agricultura",
+                "skill_xp_reward": 40,
+                "passive_bonus": {
+                    "crop_growth_bonus_percent": 1
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 130,
+            "sell_price": 50
+        },
+        {
+            "id": "book_woodland_mapmaking",
+            "name": "Cartografia da Floresta",
+            "type": "book",
+            "category": "exploration_book",
+            "required_level": 2,
+            "rarity": "uncommon",
+            "description": "Ensina a observar terrenos e marcar pontos importantes no mapa.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 2,
+                "target_skill": "exploracao",
+                "skill_xp_reward": 80,
+                "passive_bonus": {
+                    "minimap_reveal_radius_bonus": 1
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 280,
+            "sell_price": 110
+        },
+        {
+            "id": "book_copper_smithing",
+            "name": "Metalurgia de Cobre",
+            "type": "book",
+            "category": "crafting_book",
+            "required_level": 2,
+            "rarity": "uncommon",
+            "description": "Ensina o básico sobre fundir cobre e criar armas simples.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 2,
+                "target_skill": "construcao",
+                "skill_xp_reward": 90,
+                "unlocks_recipes": [
+                    "copper_sword",
+                    "copper_axe",
+                    "copper_pickaxe"
+                ],
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 340,
+            "sell_price": 135
+        },
+        {
+            "id": "book_sword_forms",
+            "name": "Posturas Básicas de Espada",
+            "type": "book",
+            "category": "combat_book",
+            "required_level": 2,
+            "rarity": "uncommon",
+            "description": "Melhora o uso de espadas em combate.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 2,
+                "target_skill": "combate",
+                "skill_xp_reward": 100,
+                "passive_bonus": {
+                    "sword_damage_bonus_percent": 3
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 360,
+            "sell_price": 140
+        },
+        {
+            "id": "book_quick_blades",
+            "name": "Lâminas Rápidas",
+            "type": "book",
+            "category": "combat_book",
+            "required_level": 2,
+            "rarity": "uncommon",
+            "description": "Livro para usuários de adagas e ataques rápidos.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 2,
+                "target_skill": "combate",
+                "skill_xp_reward": 85,
+                "passive_bonus": {
+                    "dagger_attack_speed_bonus_percent": 3
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 320,
+            "sell_price": 125
+        },
+        {
+            "id": "book_arcane_spark",
+            "name": "A Faísca Arcana",
+            "type": "book",
+            "category": "magic_book",
+            "required_level": 2,
+            "rarity": "uncommon",
+            "description": "Permite que personagens sem afinidade mágica comecem a entender magia básica.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 3,
+                "target_skill": "magia",
+                "skill_xp_reward": 120,
+                "can_unlock_skill": true,
+                "unlocks_abilities": [
+                    "magic_spark"
+                ],
+                "affinity_effect": {
+                    "non_mage_magic_learning_multiplier": 0.75,
+                    "mage_magic_learning_multiplier": 1.25
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 520,
+            "sell_price": 210
+        },
+        {
+            "id": "book_forest_etiquette",
+            "name": "Etiqueta entre Aldeões",
+            "type": "book",
+            "category": "social_book",
+            "required_level": 2,
+            "rarity": "uncommon",
+            "description": "Melhora interações sociais e pequenos diálogos com NPCs.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 2,
+                "target_skill": "comunicacao",
+                "skill_xp_reward": 95,
+                "passive_bonus": {
+                    "npc_friendship_gain_percent": 3
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 300,
+            "sell_price": 120
+        },
+        {
+            "id": "book_charm_basics",
+            "name": "Charme Básico sem Passar Vergonha",
+            "type": "book",
+            "category": "romance_book",
+            "required_level": 2,
+            "rarity": "uncommon",
+            "description": "Aumenta a habilidade de namorador e melhora interações românticas simples.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 2,
+                "target_skill": "namorador",
+                "skill_xp_reward": 85,
+                "can_unlock_skill": true,
+                "passive_bonus": {
+                    "romance_dialogue_success_percent": 2
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": false,
+            "buy_price": 380,
+            "sell_price": 150
+        },
+        {
+            "id": "book_simple_politics",
+            "name": "Política de Vilarejo",
+            "type": "book",
+            "category": "politics_book",
+            "required_level": 2,
+            "rarity": "uncommon",
+            "description": "Introdução sobre liderança, acordos e influência local.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 3,
+                "target_skill": "politica",
+                "skill_xp_reward": 120,
+                "can_unlock_skill": true,
+                "passive_bonus": {
+                    "town_reputation_gain_percent": 2
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 500,
+            "sell_price": 200
+        },
+        {
+            "id": "book_soup_and_stew",
+            "name": "Sopas, Ensopados e Panela Quente",
+            "type": "book",
+            "category": "cooking_book",
+            "required_level": 3,
+            "rarity": "uncommon",
+            "description": "Ensina receitas melhores para recuperar fome e sede.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 2,
+                "target_skill": "cozinhar",
+                "skill_xp_reward": 110,
+                "unlocks_recipes": [
+                    "vegetable_soup",
+                    "hunter_stew"
+                ],
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 420,
+            "sell_price": 165
+        },
+        {
+            "id": "book_archery_field",
+            "name": "Arco, Mira e Respiração",
+            "type": "book",
+            "category": "combat_book",
+            "required_level": 3,
+            "rarity": "uncommon",
+            "description": "Melhora o domínio com arcos.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 3,
+                "target_skill": "caca",
+                "skill_xp_reward": 130,
+                "passive_bonus": {
+                    "bow_damage_bonus_percent": 3,
+                    "bow_accuracy_bonus_percent": 3
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 480,
+            "sell_price": 190
+        },
+        {
+            "id": "book_herbs_for_potions",
+            "name": "Ervas e Poções Simples",
+            "type": "book",
+            "category": "alchemy_book",
+            "required_level": 3,
+            "rarity": "uncommon",
+            "description": "Introdução à alquimia prática.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 3,
+                "target_skill": "alquimia",
+                "skill_xp_reward": 140,
+                "can_unlock_skill": true,
+                "unlocks_recipes": [
+                    "small_health_potion",
+                    "small_mana_potion",
+                    "life_mana_potion"
+                ],
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 560,
+            "sell_price": 220
+        },
+        {
+            "id": "book_house_frames",
+            "name": "Estruturas de Madeira",
+            "type": "book",
+            "category": "building_book",
+            "required_level": 3,
+            "rarity": "uncommon",
+            "description": "Ensina construção mais eficiente com madeira.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 3,
+                "target_skill": "construcao",
+                "skill_xp_reward": 130,
+                "passive_bonus": {
+                    "wood_building_cost_reduction_percent": 3
+                },
+                "unlocks_recipes": [
+                    "wooden_wall",
+                    "wooden_floor",
+                    "small_chest"
+                ],
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 460,
+            "sell_price": 180
+        },
+        {
+            "id": "book_shadow_creatures",
+            "name": "Criaturas da Noite",
+            "type": "book",
+            "category": "survival_book",
+            "required_level": 3,
+            "rarity": "rare",
+            "description": "Descreve inimigos noturnos e como sobreviver a eles.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 4,
+                "target_skill": "sobrevivencia",
+                "skill_xp_reward": 180,
+                "passive_bonus": {
+                    "night_enemy_damage_reduction_percent": 3
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": false,
+            "sellable": true,
+            "findable": true,
+            "find_sources": [
+                "ruinas_antigas",
+                "bau_noturno"
+            ],
+            "buy_price": 0,
+            "sell_price": 320
+        },
+        {
+            "id": "book_mining_depths",
+            "name": "Profundezas e Veios Metálicos",
+            "type": "book",
+            "category": "mining_book",
+            "required_level": 3,
+            "rarity": "rare",
+            "description": "Ajuda a identificar minérios melhores.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 4,
+                "target_skill": "mineracao",
+                "skill_xp_reward": 180,
+                "passive_bonus": {
+                    "rare_ore_find_chance_percent": 2
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 720,
+            "sell_price": 290
+        },
+        {
+            "id": "book_crystal_waters",
+            "name": "Águas Cristalinas e Pesca Rara",
+            "type": "book",
+            "category": "fishing_book",
+            "required_level": 3,
+            "rarity": "rare",
+            "description": "Melhora chances de pescar peixes raros em lagos especiais.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 4,
+                "target_skill": "pescar",
+                "skill_xp_reward": 170,
+                "passive_bonus": {
+                    "rare_fish_chance_percent": 2
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 680,
+            "sell_price": 270
+        },
+        {
+            "id": "book_advanced_bargaining",
+            "name": "Barganha Avançada",
+            "type": "book",
+            "category": "trade_book",
+            "required_level": 3,
+            "rarity": "rare",
+            "description": "Ensina negociação avançada para comprar melhor e vender mais caro.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 4,
+                "target_skill": "comercio",
+                "skill_xp_reward": 200,
+                "can_unlock_skill": true,
+                "passive_bonus": {
+                    "shop_discount_percent": 2,
+                    "sell_price_bonus_percent": 2
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": false,
+            "buy_price": 850,
+            "sell_price": 340
+        },
+        {
+            "id": "book_iron_smithing",
+            "name": "Forja de Ferro Inicial",
+            "type": "book",
+            "category": "crafting_book",
+            "required_level": 4,
+            "rarity": "rare",
+            "description": "Desbloqueia receitas de ferramentas e armas de ferro.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 5,
+                "target_skill": "construcao",
+                "skill_xp_reward": 240,
+                "unlocks_recipes": [
+                    "iron_sword",
+                    "iron_pickaxe"
+                ],
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 1000,
+            "sell_price": 420
+        },
+        {
+            "id": "book_minor_warding",
+            "name": "Proteções Arcanas Menores",
+            "type": "book",
+            "category": "magic_book",
+            "required_level": 4,
+            "rarity": "rare",
+            "description": "Ensina barreiras mágicas simples.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 5,
+                "target_skill": "magia",
+                "skill_xp_reward": 260,
+                "unlocks_abilities": [
+                    "minor_magic_shield"
+                ],
+                "passive_bonus": {
+                    "magic_resistance_percent": 2
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 1150,
+            "sell_price": 460
+        },
+        {
+            "id": "book_love_letters",
+            "name": "Cartas que Ninguém Deveria Ler",
+            "type": "book",
+            "category": "romance_book",
+            "required_level": 4,
+            "rarity": "rare",
+            "description": "Livro divertido e estranho sobre flerte, cuidado e timing social.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 4,
+                "target_skill": "namorador",
+                "skill_xp_reward": 220,
+                "passive_bonus": {
+                    "gift_effectiveness_percent": 3
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": false,
+            "sellable": true,
+            "findable": true,
+            "find_sources": [
+                "casa_abandonada",
+                "biblioteca_antiga"
+            ],
+            "buy_price": 0,
+            "sell_price": 500
+        },
+        {
+            "id": "book_local_laws",
+            "name": "Leis Locais e Pequenos Poderes",
+            "type": "book",
+            "category": "politics_book",
+            "required_level": 4,
+            "rarity": "rare",
+            "description": "Ajuda a entender influência, cargos e acordos locais.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 5,
+                "target_skill": "politica",
+                "skill_xp_reward": 260,
+                "passive_bonus": {
+                    "npc_negotiation_success_percent": 3,
+                    "town_reputation_gain_percent": 3
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 1250,
+            "sell_price": 500
+        },
+        {
+            "id": "book_survival_in_rain",
+            "name": "Sobrevivendo à Chuva",
+            "type": "book",
+            "category": "survival_book",
+            "required_level": 4,
+            "rarity": "rare",
+            "description": "Reduz penalidades durante chuva e tempestades.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 4,
+                "target_skill": "sobrevivencia",
+                "skill_xp_reward": 210,
+                "passive_bonus": {
+                    "rain_energy_penalty_reduction_percent": 5
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": false,
+            "sellable": true,
+            "findable": true,
+            "find_sources": [
+                "acampamento_abandonado",
+                "bau_de_explorador"
+            ],
+            "buy_price": 0,
+            "sell_price": 410
+        },
+        {
+            "id": "book_fast_cooking",
+            "name": "Cozinha sem Perder o Dia",
+            "type": "book",
+            "category": "cooking_book",
+            "required_level": 4,
+            "rarity": "rare",
+            "description": "Reduz o tempo de preparo de alimentos.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 4,
+                "target_skill": "cozinhar",
+                "skill_xp_reward": 220,
+                "passive_bonus": {
+                    "cooking_time_reduction_percent": 5
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 900,
+            "sell_price": 360
+        },
+        {
+            "id": "book_goblin_trade",
+            "name": "O Comércio dos Goblins",
+            "type": "book",
+            "category": "trade_book",
+            "required_level": 4,
+            "rarity": "rare",
+            "description": "Ensina truques arriscados de negociação.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 5,
+                "target_skill": "comercio",
+                "skill_xp_reward": 250,
+                "passive_bonus": {
+                    "sell_price_bonus_percent": 3,
+                    "chance_extra_shop_item_percent": 2
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": false,
+            "sellable": true,
+            "findable": true,
+            "find_sources": [
+                "acampamento_goblin",
+                "mercador_raro"
+            ],
+            "buy_price": 0,
+            "sell_price": 620
+        },
+        {
+            "id": "book_mage_for_lumberjacks",
+            "name": "Magia para Lenhadores Teimosos",
+            "type": "book",
+            "category": "hybrid_book",
+            "required_level": 5,
+            "rarity": "epic",
+            "description": "Livro raro que permite a classes físicas aprenderem magia com menor penalidade.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 6,
+                "target_skill": "magia",
+                "skill_xp_reward": 350,
+                "can_unlock_skill": true,
+                "affinity_effect": {
+                    "non_mage_magic_learning_multiplier": 1.0,
+                    "lumberjack_magic_learning_multiplier": 1.15,
+                    "mage_magic_learning_multiplier": 1.3
+                },
+                "unlocks_abilities": [
+                    "wood_spark",
+                    "minor_nature_spell"
+                ],
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": false,
+            "sellable": true,
+            "findable": true,
+            "find_sources": [
+                "arvore_ancestral",
+                "biblioteca_antiga"
+            ],
+            "buy_price": 0,
+            "sell_price": 1200
+        },
+        {
+            "id": "book_noble_speech",
+            "name": "Discursos que Movem Pessoas",
+            "type": "book",
+            "category": "politics_book",
+            "required_level": 5,
+            "rarity": "epic",
+            "description": "Livro avançado de liderança, discurso e influência.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 6,
+                "target_skill": "politica",
+                "skill_xp_reward": 380,
+                "passive_bonus": {
+                    "town_reputation_gain_percent": 5,
+                    "npc_recruitment_success_percent": 3
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": false,
+            "buy_price": 2200,
+            "sell_price": 900
+        },
+        {
+            "id": "book_ancient_builder",
+            "name": "Arquitetura dos Antigos",
+            "type": "book",
+            "category": "building_book",
+            "required_level": 5,
+            "rarity": "epic",
+            "description": "Ensina técnicas antigas de construção resistente.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 6,
+                "target_skill": "construcao",
+                "skill_xp_reward": 360,
+                "passive_bonus": {
+                    "building_durability_bonus_percent": 5,
+                    "stone_building_cost_reduction_percent": 3
+                },
+                "unlocks_recipes": [
+                    "stone_wall",
+                    "reinforced_chest",
+                    "watch_post"
+                ],
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": false,
+            "sellable": true,
+            "findable": true,
+            "find_sources": [
+                "ruinas_antigas",
+                "templo_quebrado"
+            ],
+            "buy_price": 0,
+            "sell_price": 1100
+        },
+        {
+            "id": "book_blade_discipline",
+            "name": "Disciplina da Lâmina",
+            "type": "book",
+            "category": "combat_book",
+            "required_level": 5,
+            "rarity": "epic",
+            "description": "Livro avançado para guerreiros focados em espada.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 5,
+                "target_skill": "combate",
+                "skill_xp_reward": 340,
+                "passive_bonus": {
+                    "melee_damage_bonus_percent": 4,
+                    "block_efficiency_percent": 3
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 1800,
+            "sell_price": 720
+        },
+        {
+            "id": "book_deep_roots",
+            "name": "Raízes Profundas",
+            "type": "book",
+            "category": "lumberjack_book",
+            "required_level": 5,
+            "rarity": "epic",
+            "description": "Ensina a identificar madeira rara e cortar árvores antigas.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 5,
+                "target_skill": "lenhador",
+                "skill_xp_reward": 340,
+                "passive_bonus": {
+                    "hardwood_drop_chance_percent": 4,
+                    "woodcutting_energy_cost_reduction_percent": 4
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": false,
+            "sellable": true,
+            "findable": true,
+            "find_sources": [
+                "arvore_ancestral",
+                "cabana_do_lenhador"
+            ],
+            "buy_price": 0,
+            "sell_price": 850
+        },
+        {
+            "id": "book_moon_alchemy",
+            "name": "Alquimia da Lua Baixa",
+            "type": "book",
+            "category": "alchemy_book",
+            "required_level": 5,
+            "rarity": "epic",
+            "description": "Livro raro sobre poções noturnas e mana.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 6,
+                "target_skill": "alquimia",
+                "skill_xp_reward": 370,
+                "passive_bonus": {
+                    "mana_potion_effect_bonus_percent": 5
+                },
+                "unlocks_recipes": [
+                    "arcane_smoothie",
+                    "stamina_potion"
+                ],
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 2400,
+            "sell_price": 960
+        },
+        {
+            "id": "book_secrets_of_the_lake",
+            "name": "Segredos do Lago Sem Fundo",
+            "type": "book",
+            "category": "fishing_book",
+            "required_level": 5,
+            "rarity": "epic",
+            "description": "Aumenta a chance de capturar peixes raros e lendários.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 6,
+                "target_skill": "pescar",
+                "skill_xp_reward": 360,
+                "passive_bonus": {
+                    "rare_fish_chance_percent": 3,
+                    "legendary_fish_chance_percent": 1
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": false,
+            "sellable": true,
+            "findable": true,
+            "find_sources": [
+                "bau_submerso",
+                "pescador_lendario"
+            ],
+            "buy_price": 0,
+            "sell_price": 1000
+        },
+        {
+            "id": "book_broken_language",
+            "name": "A Língua Quebrada dos Espíritos",
+            "type": "book",
+            "category": "magic_book",
+            "required_level": 5,
+            "rarity": "legendary",
+            "description": "Livro extremamente raro que abre caminho para magias antigas.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 8,
+                "target_skill": "magia",
+                "skill_xp_reward": 600,
+                "can_unlock_skill": true,
+                "unlocks_abilities": [
+                    "spirit_whisper",
+                    "ancient_spark"
+                ],
+                "passive_bonus": {
+                    "mana_max_bonus": 10
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": false,
+            "sellable": true,
+            "findable": true,
+            "find_sources": [
+                "templo_antigo",
+                "biblioteca_proibida"
+            ],
+            "buy_price": 0,
+            "sell_price": 3000
+        },
+        {
+            "id": "book_kings_tax",
+            "name": "O Imposto do Rei Ausente",
+            "type": "book",
+            "category": "politics_book",
+            "required_level": 5,
+            "rarity": "legendary",
+            "description": "Obra rara sobre economia, impostos e controle político.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 8,
+                "target_skill": "politica",
+                "skill_xp_reward": 600,
+                "passive_bonus": {
+                    "town_income_bonus_percent": 5,
+                    "shop_tax_reduction_percent": 3
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": false,
+            "sellable": true,
+            "findable": true,
+            "find_sources": [
+                "cofre_do_prefeito",
+                "ruina_real"
+            ],
+            "buy_price": 0,
+            "sell_price": 3500
+        },
+        {
+            "id": "book_living_with_monsters",
+            "name": "Vivendo entre Monstros",
+            "type": "book",
+            "category": "survival_book",
+            "required_level": 5,
+            "rarity": "epic",
+            "description": "Ensina padrões de criaturas e reduz dano recebido de monstros comuns.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 5,
+                "target_skill": "sobrevivencia",
+                "skill_xp_reward": 330,
+                "passive_bonus": {
+                    "common_monster_damage_reduction_percent": 4
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": true,
+            "buy_price": 1600,
+            "sell_price": 640
+        },
+        {
+            "id": "book_gift_science",
+            "name": "A Ciência dos Presentes",
+            "type": "book",
+            "category": "romance_book",
+            "required_level": 5,
+            "rarity": "epic",
+            "description": "Ensina como escolher presentes melhores para NPCs.",
+            "functionalities": {
+                "readable": true,
+                "reading_days": 5,
+                "target_skill": "namorador",
+                "skill_xp_reward": 320,
+                "passive_bonus": {
+                    "gift_effectiveness_percent": 5,
+                    "friendship_decay_reduction_percent": 2
+                },
+                "consumed_after_read": false
+            },
+            "craftable": false,
+            "buyable": true,
+            "sellable": true,
+            "findable": false,
+            "buy_price": 1500,
+            "sell_price": 600
+        }
+    ]
+}

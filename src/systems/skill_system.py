@@ -13,7 +13,7 @@ class Skill:
 
     @property
     def xp_to_next(self) -> int:
-        return 50 + (self.level - 1) * 45
+        return int(50 * (1.35 ** (self.level - 1)))
 
     def add_xp(self, amount: int) -> bool:
         if amount <= 0:

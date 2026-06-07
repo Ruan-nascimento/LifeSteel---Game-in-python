@@ -68,13 +68,20 @@ class HUD:
         total_width = Settings.HOTBAR_SIZE * slot_size + (Settings.HOTBAR_SIZE - 1) * gap
         x = surface.get_width() // 2 - total_width // 2
         y = surface.get_height() - slot_size - 18
+        mouse_pos = pygame.mouse.get_pos()
+        hovered_slot = None
+
         for i in range(Settings.HOTBAR_SIZE):
             rect = pygame.Rect(x + i * (slot_size + gap), y, slot_size, slot_size)
             selected = player.inventory.selected_slot == i
             bg = (64, 75, 69) if selected else COLORS["panel_dark"]
+            slot = player.inventory.slots[i] if i < len(player.inventory.slots) else None
+            if rect.collidepoint(mouse_pos) and slot:
+                bg = (74, 85, 79)
+                hovered_slot = slot
+
             pygame.draw.rect(surface, bg, rect, border_radius=6)
             pygame.draw.rect(surface, COLORS["accent"] if selected else (77, 86, 80), rect, 2, border_radius=6)
-            slot = player.inventory.slots[i] if i < len(player.inventory.slots) else None
             draw_text(surface, str(i + 1), (rect.x + 5, rect.y + 3), (183, 190, 178), 12, bold=True)
             if slot:
                 icon = self.assets.item_icon(slot.item_id, 34)
@@ -87,6 +94,10 @@ class HUD:
         item = player.equipped_item()
         label = item.name if item else "Maos vazias"
         draw_text(surface, label, (surface.get_width() // 2, y - 23), COLORS["white"], 14, bold=True, center=True)
+
+        if hovered_slot:
+            from src.ui.widgets import draw_item_tooltip
+            draw_item_tooltip(surface, hovered_slot.item, mouse_pos, hovered_slot)
 
     def _draw_quest(self, surface: pygame.Surface, quest_system) -> None:
         lines = quest_system.objective_lines()

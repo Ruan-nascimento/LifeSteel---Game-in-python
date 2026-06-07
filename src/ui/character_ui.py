@@ -79,6 +79,8 @@ class CharacterUI:
         start_x = panel.x + 28
         start_y = panel.y + 104
         col_width = (panel.width - 56) // columns
+        mouse_pos = pygame.mouse.get_pos()
+        hovered_skill = None
         for index, skill in enumerate(skills):
             col = index % columns
             row = index // columns
@@ -87,14 +89,24 @@ class CharacterUI:
             if y > panel.bottom - 54:
                 continue
             draw_text(surface, f"{skill.name} Lv {skill.level}", (x, y), COLORS["white"], 14, bold=True)
+            draw_text(surface, f"{int(skill.xp)}/{int(skill.xp_to_next)} XP", (x + 130, y + 2), (180, 188, 176), 11)
             bar = pygame.Rect(x, y + 20, col_width - 24, 9)
             pygame.draw.rect(surface, COLORS["panel_dark"], bar)
             fill = bar.copy()
-            fill.width = int(bar.width * (skill.xp / skill.xp_to_next))
+            fill.width = int(bar.width * (skill.xp / skill.xp_to_next)) if skill.xp_to_next > 0 else bar.width
             pygame.draw.rect(surface, COLORS["accent_2"], fill)
             pygame.draw.rect(surface, (70, 81, 76), bar, 1)
+            
+            rect = pygame.Rect(x, y, col_width - 24, 30)
+            if rect.collidepoint(mouse_pos):
+                hovered_skill = skill
+                
         description_rect = pygame.Rect(panel.x + 28, panel.bottom - 36, panel.width - 56, 24)
         draw_wrapped(surface, "Skills evoluem por acao: combate, coleta, comercio, construcao, exploracao, magia e sobrevivencia.", description_rect, (180, 188, 176), 13)
+
+        if hovered_skill:
+            from src.ui.widgets import draw_skill_tooltip
+            draw_skill_tooltip(surface, hovered_skill, mouse_pos)
 
     def _draw_quests(self, surface, panel, quest_system) -> None:
         lines = quest_system.objective_lines()

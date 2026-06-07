@@ -23,6 +23,8 @@ class InventoryUI:
                     return action
             for ref, rect in self.slot_rects.items():
                 if rect.collidepoint(event.pos):
+                    if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                        return ("shift_click_slot", ref[0], ref[1])
                     self.selected_ref = ref
                     self.dragging_ref = ref
                     return None
@@ -75,6 +77,21 @@ class InventoryUI:
 
         self._draw_details(surface, panel, player)
         draw_text(surface, "Arraste itens entre inventario, hotbar e mochila. 1-5 seleciona hotbar.", (panel.x + 24, panel.bottom - 32), (178, 186, 174), 13)
+
+        mouse_pos = pygame.mouse.get_pos()
+        hovered_ref = self._slot_at(mouse_pos)
+        if hovered_ref:
+            source, index = hovered_ref
+            slot = None
+            if source == "main" and 0 <= index < player.inventory.capacity:
+                slot = player.inventory.slots[index]
+            elif source == "backpack":
+                slots = player.backpack_contents()
+                if slots is not None and 0 <= index < len(slots):
+                    slot = slots[index]
+            if slot:
+                from src.ui.widgets import draw_item_tooltip
+                draw_item_tooltip(surface, slot.item, mouse_pos, slot)
 
     def _draw_grid(self, surface, slots, source: str, start_index: int, x: int, y: int, columns: int, player) -> None:
         slot_size = 54

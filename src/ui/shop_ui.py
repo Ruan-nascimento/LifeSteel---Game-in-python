@@ -37,10 +37,16 @@ class ShopUI:
 
         self.buttons = []
         y = left.y + 42
+        mouse_pos = pygame.mouse.get_pos()
+        hovered_item = None
+        hovered_slot = None
         for entry in shop_system.available_stock(player)[:10]:
             item_id = entry["id"]
             data = ITEMS[item_id]
             row = pygame.Rect(left.x + 10, y, left.width - 20, 38)
+            if row.collidepoint(mouse_pos):
+                from src.items.item import make_item
+                hovered_item = make_item(item_id)
             pygame.draw.rect(surface, (34, 40, 38), row, border_radius=5)
             surface.blit(self.assets.item_icon(item_id, 26), (row.x + 7, row.y + 6))
             lock = " [bloq]" if entry["locked"] else ""
@@ -55,6 +61,9 @@ class ShopUI:
         y = right.y + 42
         for slot_index, slot in sellable[:9]:
             row = pygame.Rect(right.x + 10, y, right.width - 20, 38)
+            if row.collidepoint(mouse_pos):
+                hovered_item = slot.item
+                hovered_slot = slot
             pygame.draw.rect(surface, (34, 40, 38), row, border_radius=5)
             surface.blit(self.assets.item_icon(slot.item_id, 24), (row.x + 6, row.y + 7))
             draw_text(surface, f"{ITEMS[slot.item_id]['name']} x{slot.quantity}", (row.x + 36, row.y + 7), COLORS["white"], 13, bold=True)
@@ -65,3 +74,7 @@ class ShopUI:
 
         info = pygame.Rect(panel.x + 20, panel.bottom - 38, panel.width - 40, 24)
         draw_wrapped(surface, "Comunicacao reduz preco de compra. Comercio e Politica aumentam preco de venda. A loja so abre perto do vendedor.", info, (183, 190, 178), 13)
+
+        if hovered_item:
+            from src.ui.widgets import draw_item_tooltip
+            draw_item_tooltip(surface, hovered_item, mouse_pos, hovered_slot)
