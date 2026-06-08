@@ -1,9 +1,14 @@
+import sys
 from pathlib import Path
 
-
-BASE_DIR = Path(__file__).resolve().parents[2]
-ASSETS_DIR = BASE_DIR / "assets"
-SAVES_DIR = BASE_DIR / "saves"
+if getattr(sys, 'frozen', False):
+    BASE_DIR = Path(sys._MEIPASS)
+    ASSETS_DIR = BASE_DIR / "assets"
+    SAVES_DIR = Path(sys.executable).parent / "saves"
+else:
+    BASE_DIR = Path(__file__).resolve().parents[2]
+    ASSETS_DIR = BASE_DIR / "assets"
+    SAVES_DIR = BASE_DIR / "saves"
 
 
 class Settings:
