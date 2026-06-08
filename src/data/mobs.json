@@ -1,0 +1,191 @@
+{
+  "mobs": [
+    {
+      "id": "slime_green",
+      "name": "Slime Verde",
+      "level": 1,
+      "rarity": "common",
+      "spawn_phases": ["day", "sunset"],
+      "biomes": ["forest", "clearing", "dense_forest"],
+      "max_per_chunk": 3,
+      "stats": {"health": 25, "damage": 5, "speed": 55, "xp_reward": 12, "coins": 4},
+      "drops": [{"id": "slime_gel", "chance": 0.5, "min": 1, "max": 2}]
+    },
+    {
+      "id": "field_rat",
+      "name": "Rato do Campo",
+      "level": 1,
+      "rarity": "common",
+      "spawn_phases": ["day"],
+      "biomes": ["field", "clearing", "village_region"],
+      "max_per_chunk": 3,
+      "stats": {"health": 18, "damage": 4, "speed": 88, "xp_reward": 10, "coins": 3},
+      "drops": [{"id": "fiber", "chance": 0.35, "min": 1, "max": 1}]
+    },
+    {
+      "id": "small_wasp",
+      "name": "Vespa Pequena",
+      "level": 1,
+      "rarity": "common",
+      "spawn_phases": ["day", "sunset"],
+      "biomes": ["forest", "dense_forest"],
+      "max_per_chunk": 2,
+      "stats": {"health": 16, "damage": 5, "speed": 120, "xp_reward": 11, "coins": 4},
+      "drops": [{"id": "herb", "chance": 0.2, "min": 1, "max": 1}]
+    },
+    {
+      "id": "young_boar",
+      "name": "Javali Jovem",
+      "level": 2,
+      "rarity": "common",
+      "spawn_phases": ["day", "sunset"],
+      "biomes": ["forest", "field"],
+      "max_per_chunk": 2,
+      "stats": {"health": 40, "damage": 8, "speed": 92, "xp_reward": 22, "coins": 7},
+      "drops": [{"id": "raw_meat", "chance": 0.55, "min": 1, "max": 1}]
+    },
+    {
+      "id": "blue_slime",
+      "name": "Slime Azul",
+      "level": 2,
+      "rarity": "uncommon",
+      "spawn_phases": ["day", "dawn"],
+      "biomes": ["lake", "swamp"],
+      "max_per_chunk": 2,
+      "stats": {"health": 32, "damage": 7, "speed": 64, "xp_reward": 20, "coins": 8},
+      "drops": [{"id": "water_flask", "chance": 0.35, "min": 1, "max": 1}]
+    },
+    {
+      "id": "biting_plant",
+      "name": "Planta Mordedora",
+      "level": 2,
+      "rarity": "uncommon",
+      "spawn_phases": ["day", "sunset"],
+      "biomes": ["dense_forest", "swamp"],
+      "max_per_chunk": 2,
+      "stats": {"health": 35, "damage": 8, "speed": 0, "xp_reward": 24, "coins": 8, "ranged": true},
+      "drops": [{"id": "herb", "chance": 0.5, "min": 1, "max": 2}]
+    },
+    {
+      "id": "weak_wolf",
+      "name": "Lobo Fraco",
+      "level": 3,
+      "rarity": "uncommon",
+      "spawn_phases": ["day", "sunset", "night"],
+      "biomes": ["forest", "dense_forest"],
+      "max_per_chunk": 2,
+      "stats": {"health": 52, "damage": 11, "speed": 108, "xp_reward": 34, "coins": 12},
+      "drops": [{"id": "hide", "chance": 0.35, "min": 1, "max": 1}]
+    },
+    {
+      "id": "goblin_scout",
+      "name": "Goblin Batedor",
+      "level": 3,
+      "rarity": "uncommon",
+      "spawn_phases": ["day", "sunset"],
+      "biomes": ["field", "rocky", "forest"],
+      "max_per_chunk": 2,
+      "stats": {"health": 48, "damage": 12, "speed": 96, "xp_reward": 38, "coins": 18},
+      "drops": [{"id": "simple_ore", "chance": 0.25, "min": 1, "max": 1}]
+    },
+    {
+      "id": "bat",
+      "name": "Morcego",
+      "level": 1,
+      "rarity": "common",
+      "spawn_phases": ["night"],
+      "biomes": ["forest", "dense_forest", "cave", "cave_entrance"],
+      "max_per_chunk": 3,
+      "stats": {"health": 22, "damage": 5, "speed": 124, "xp_reward": 13, "coins": 5},
+      "drops": [{"id": "fiber", "chance": 0.25, "min": 1, "max": 1}]
+    },
+    {
+      "id": "weak_shadow_slime",
+      "name": "Slime Sombrio Fraco",
+      "level": 2,
+      "rarity": "common",
+      "spawn_phases": ["night"],
+      "biomes": ["forest", "dense_forest", "swamp", "cave"],
+      "max_per_chunk": 3,
+      "stats": {"health": 38, "damage": 9, "speed": 70, "xp_reward": 28, "coins": 10},
+      "drops": [{"id": "slime_gel", "chance": 0.55, "min": 1, "max": 2}]
+    },
+    {
+      "id": "shadow_wolf",
+      "name": "Lobo Sombrio",
+      "level": 3,
+      "rarity": "uncommon",
+      "spawn_phases": ["night"],
+      "biomes": ["dense_forest", "cave_entrance"],
+      "max_per_chunk": 2,
+      "stats": {"health": 68, "damage": 15, "speed": 116, "xp_reward": 52, "coins": 20},
+      "drops": [{"id": "night_fang", "chance": 0.18, "min": 1, "max": 1}]
+    },
+    {
+      "id": "night_goblin",
+      "name": "Goblin Noturno",
+      "level": 3,
+      "rarity": "uncommon",
+      "spawn_phases": ["night"],
+      "biomes": ["field", "rocky", "cave_entrance"],
+      "max_per_chunk": 2,
+      "stats": {"health": 62, "damage": 14, "speed": 96, "xp_reward": 50, "coins": 22},
+      "drops": [{"id": "simple_ore", "chance": 0.35, "min": 1, "max": 2}]
+    },
+    {
+      "id": "night_spider",
+      "name": "Aranha da Noite",
+      "level": 4,
+      "rarity": "rare",
+      "spawn_phases": ["night"],
+      "biomes": ["dense_forest", "cave"],
+      "max_per_chunk": 2,
+      "stats": {"health": 82, "damage": 17, "speed": 88, "xp_reward": 70, "coins": 28},
+      "drops": [{"id": "fiber", "chance": 0.65, "min": 2, "max": 4}]
+    },
+    {
+      "id": "weak_specter",
+      "name": "Espectro Fraco",
+      "level": 4,
+      "rarity": "rare",
+      "spawn_phases": ["night"],
+      "biomes": ["cave", "ruins", "dense_forest"],
+      "max_per_chunk": 1,
+      "stats": {"health": 72, "damage": 18, "speed": 78, "xp_reward": 76, "coins": 32, "ranged": true},
+      "drops": [{"id": "arcane_dust", "chance": 0.35, "min": 1, "max": 1}]
+    },
+    {
+      "id": "goblin_brute",
+      "name": "Bruto Goblin",
+      "level": 5,
+      "rarity": "rare",
+      "spawn_phases": ["night"],
+      "biomes": ["rocky", "cave"],
+      "max_per_chunk": 1,
+      "stats": {"health": 130, "damage": 24, "speed": 74, "xp_reward": 100, "coins": 45},
+      "drops": [{"id": "iron_ore", "chance": 0.25, "min": 1, "max": 2}]
+    },
+    {
+      "id": "night_beast",
+      "name": "Fera da Escuridao",
+      "level": 5,
+      "rarity": "rare",
+      "spawn_phases": ["night"],
+      "biomes": ["dense_forest", "cave_entrance"],
+      "max_per_chunk": 1,
+      "stats": {"health": 160, "damage": 22, "speed": 80, "xp_reward": 90, "coins": 50},
+      "drops": [{"id": "night_fang", "chance": 0.25, "min": 1, "max": 1}]
+    },
+    {
+      "id": "cave_guardian",
+      "name": "Guardiao da Caverna",
+      "level": 5,
+      "rarity": "epic",
+      "spawn_phases": ["night", "day", "sunset", "dawn"],
+      "biomes": ["cave"],
+      "max_per_chunk": 1,
+      "stats": {"health": 180, "damage": 25, "speed": 62, "xp_reward": 120, "coins": 70},
+      "drops": [{"id": "cracked_crystal", "chance": 0.45, "min": 1, "max": 2}]
+    }
+  ]
+}

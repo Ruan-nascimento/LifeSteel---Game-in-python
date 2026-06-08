@@ -1,0 +1,30 @@
+{
+  "materials": {
+    "wood": {"default_durability": 35},
+    "stone": {"default_durability": 50},
+    "copper": {"default_durability": 90},
+    "iron": {"default_durability": 160},
+    "crystal": {"default_durability": 120},
+    "rare": {"default_durability": 140},
+    "unique": {"default_durability": 220}
+  },
+  "usage_damage": {
+    "correct_tool": 1,
+    "wrong_tool": 3,
+    "tool_as_weapon": 2,
+    "weapon_attack": 1,
+    "magic_cast_interval": 3
+  },
+  "tool_targets": {
+    "axe": ["tree", "wood_resource"],
+    "pickaxe": ["stone", "ore", "crystal"],
+    "shovel": ["soil", "dirt", "sand", "buried_item"],
+    "hoe": ["soil", "farm_soil"],
+    "fishing_rod": ["water"],
+    "sword": ["enemy", "animal"],
+    "dagger": ["enemy", "animal"],
+    "staff": ["enemy", "magic"],
+    "wand": ["enemy", "magic"],
+    "bow": ["enemy", "animal"]
+  }
+}

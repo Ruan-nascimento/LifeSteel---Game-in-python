@@ -49,7 +49,8 @@ class ShopUI:
 
     def draw(self, surface: pygame.Surface, player, shop_system) -> None:
         panel = pygame.Rect(surface.get_width() // 2 - 470, surface.get_height() // 2 - 290, 940, 580)
-        draw_panel(surface, panel, "Loja da Clareira")
+        vendor = shop_system.active_vendor
+        draw_panel(surface, panel, f"{vendor.title} - {vendor.name}")
         draw_text(surface, f"Moedas: {player.coins} ZC", (panel.right - 170, panel.y + 20), COLORS["accent"], 17, bold=True)
         draw_text(surface, shop_system.message, (panel.x + 20, panel.y + 52), COLORS["white"], 14)
 

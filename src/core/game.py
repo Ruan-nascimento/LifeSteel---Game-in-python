@@ -27,16 +27,20 @@ from src.systems.consumable_system import ConsumableSystem
 from src.systems.cooking_system import CookingSystem
 from src.systems.crafting_system import CraftingSystem
 from src.systems.drop_system import DropSystem
+from src.systems.durability_system import DurabilitySystem
 from src.systems.economy_system import EconomySystem
 from src.systems.inventory_system import Inventory, InventorySlot
 from src.systems.lighting_system import LightingSystem
+from src.systems.level_growth_system import LevelGrowthSystem
 from src.systems.map_exploration_system import MapExplorationSystem
+from src.systems.mob_spawn_system import MobSpawnSystem
 from src.systems.particle_system import ParticleManager
 from src.systems.quest_system import QuestSystem
 from src.systems.reading_system import ReadingSystem
 from src.systems.shop_system import ShopSystem
 from src.systems.time_system import TimeSystem
 from src.systems.weather_system import WeatherSystem
+from src.systems.water_system import WaterSystem
 from src.ui.character_creation_ui import CharacterCreationMenu
 from src.ui.character_ui import CharacterUI
 from src.ui.dialogue_ui import DialogueUI
@@ -92,11 +96,17 @@ class Game:
         self.consumable_system = ConsumableSystem()
         self.cooking_system = CookingSystem()
         self.drop_system = DropSystem(self._rng)
+        self.durability_system = DurabilitySystem()
+        self.level_growth_system = LevelGrowthSystem()
+        self.water_system = WaterSystem()
         self.time_system = TimeSystem()
         self.weather_system = WeatherSystem()
         self.lighting_system = LightingSystem(self.screen.get_size())
+        self.mob_spawn_system = MobSpawnSystem()
         self.particles = ParticleManager()
         self.exploration: MapExplorationSystem | None = None
+        self._overworld_exploration_data: list[list[int]] = []
+        self._cave_explorations: dict[str, list[list[int]]] = {}
         self.crafting_system = CraftingSystem()
         self.building_system = BuildingSystem()
         self.quest_system = QuestSystem()
@@ -232,6 +242,7 @@ class Game:
                     self.drop_system,
                     self.quest_system,
                     self.time_system.is_night(),
+                    self.durability_system,
                 )
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3 and self.active_panel is None:
             mouse_world = self.camera.screen_to_world(event.pos)
@@ -320,6 +331,32 @@ class Game:
             return
         for message in self.quest_system.drain_messages():
             self.notifications.push(message)
+
+    def _entity_in_active_chunk(self, entity) -> bool:
+        if not self.world or not getattr(self.world, "chunk_manager", None):
+            return True
+        if entity is self.player:
+            return True
+        tx, ty = self.world.pixel_to_tile(entity.center)
+        return not self.world.chunk_manager.active_chunks or self.world.chunk_manager.is_active_tile(tx, ty)
+
+    def _refresh_world_bounds_after_area_change(self, area_key: str | None = None) -> None:
+        if not self.world:
+            return
+        if self.camera:
+            self.camera.world_width = self.world.pixel_width
+            self.camera.world_height = self.world.pixel_height
+            self.camera.offset.update(0, 0)
+        previous_exploration: list[list[int]] = []
+        if area_key == "overworld":
+            previous_exploration = self._overworld_exploration_data
+        elif area_key:
+            previous_exploration = self._cave_explorations.get(area_key, [])
+        self.exploration = MapExplorationSystem(self.world)
+        if previous_exploration:
+            self.exploration.from_list(previous_exploration)
+        if self.mob_spawn_system and self.player:
+            self.mob_spawn_system.bind(self.world, self.player, self.time_system)
 
     def _use_equipped_consumable(self) -> None:
         if not self.player:
@@ -705,20 +742,26 @@ class Game:
         self._place_initial_camp()
         self.player = Player(name, class_id, self.world.spawn_pos, self.assets)
         self.camera = Camera(self.screen.get_size(), (self.world.pixel_width, self.world.pixel_height))
-        self.npcs = [NPC("Mira", "Vendedora", self.world.vendor_pos, self.assets, vendor=True)]
-        self.enemies = self._spawn_initial_enemies()
-        self.animals = self._spawn_initial_animals()
         self.economy = EconomySystem()
         self.shop_system = ShopSystem(self.economy)
+        self.npcs = self._spawn_npcs()
+        self.enemies = self._spawn_initial_enemies()
+        self.animals = self._spawn_initial_animals()
         self.combat_system = CombatSystem()
         self.consumable_system = ConsumableSystem()
         self.cooking_system = CookingSystem()
         self.drop_system = DropSystem(self._rng)
+        self.durability_system = DurabilitySystem()
+        self.level_growth_system = LevelGrowthSystem()
+        self.water_system = WaterSystem()
         self.time_system = TimeSystem()
         self.weather_system = WeatherSystem()
         self.lighting_system = LightingSystem(self.screen.get_size())
+        self.mob_spawn_system = MobSpawnSystem(self.world, self.player, self.time_system)
         self.particles = ParticleManager()
         self.exploration = MapExplorationSystem(self.world)
+        self._overworld_exploration_data = []
+        self._cave_explorations = {}
         self.crafting_system = CraftingSystem()
         self.building_system = BuildingSystem()
         self.quest_system = QuestSystem(player=self.player)
@@ -726,7 +769,7 @@ class Game:
         self.state = "playing"
         self.notifications.push("Voce acordou perdido na floresta.")
         self.notifications.push("Use E na bancada inicial para craftar itens.")
-        self.notifications.push("Encontre Mira para comprar ferramentas.")
+        self.notifications.push("Procure vendedores nos povoados para comprar itens raros.")
 
     def _place_initial_camp(self) -> None:
         if not self.world:
@@ -770,6 +813,32 @@ class Game:
                 animals.append(Animal(ANIMAL_ORDER[index % len(ANIMAL_ORDER)], pos, self.assets))
         return animals
 
+    def _spawn_npcs(self) -> list[NPC]:
+        if not self.world:
+            return []
+        npcs = [
+            NPC("Milo Raizforte", "Mercador da Clareira", self.world.vendor_pos, self.assets, vendor=True, vendor_id="vendor_milo_root", location_id="initial_clearing")
+        ]
+        for village in getattr(self.world, "villages", []):
+            base = pygame.Vector2((village.tile[0] + 0.5) * Settings.TILE_SIZE, (village.tile[1] + 0.5) * Settings.TILE_SIZE)
+            for index, vendor_id in enumerate(village.vendors):
+                data = self.shop_system._vendor_data(vendor_id)
+                offset = pygame.Vector2((index - 0.5) * 54, 42 + index * 18)
+                dialogue = [line for line in (data.get("dialogues") or {}).values() if isinstance(line, str)]
+                npcs.append(
+                    NPC(
+                        data.get("name", vendor_id),
+                        data.get("title", "Mercador"),
+                        base + offset,
+                        self.assets,
+                        vendor=True,
+                        vendor_id=vendor_id,
+                        location_id=village.location_id,
+                        dialogue=dialogue or None,
+                    )
+                )
+        return npcs
+
     def _update(self, dt: float) -> None:
         update_start = perf_counter()
         self.input.refresh()
@@ -791,14 +860,18 @@ class Game:
         if not paused:
             if not ui_open:
                 self.player.update(dt, self.input, self.world, self.weather_system, self.particles)
-            self.world.update(dt)
+            self.world.update(dt, self.player.center)
             for npc in self.npcs:
-                npc.update(dt)
-                updated_entities += 1
+                if self._entity_in_active_chunk(npc):
+                    npc.update(dt)
+                    updated_entities += 1
             for animal in self.animals:
-                animal.update(dt, self.world)
-                updated_entities += 1
+                if self._entity_in_active_chunk(animal):
+                    animal.update(dt, self.world)
+                    updated_entities += 1
             for enemy in self.enemies:
+                if not self._entity_in_active_chunk(enemy):
+                    continue
                 enemy.update(dt, self.player, self.world)
                 updated_entities += 1
                 attack_range = enemy.attack_range if enemy.ranged else 34
@@ -808,6 +881,10 @@ class Game:
             was_night = self.time_system.is_night()
             new_day = self.time_system.update(dt)
             self.weather_system.update(dt, new_day)
+            for message in self.water_system.update(dt, self.player, self.world):
+                self.notifications.push(message)
+            for spawned in self.mob_spawn_system.update(dt, self.enemies, self.assets):
+                self.enemies.append(spawned)
             for result in self.cooking_system.update(dt, self.player):
                 self.notifications.push(result["message"])
                 if result.get("success") and result.get("output_id"):
@@ -837,8 +914,18 @@ class Game:
                 self._quest_event("explore", "night", 1, {"is_night": True})
             if self.player.center.distance_to(self.world.spawn_pos) <= 130:
                 self._quest_event("return", "camp", 1)
-            self.quest_system.update(dt, self.player)
+            if not self.world.in_cave:
+                for village in getattr(self.world, "villages", []):
+                    village_center = pygame.Vector2((village.tile[0] + 0.5) * Settings.TILE_SIZE, (village.tile[1] + 0.5) * Settings.TILE_SIZE)
+                    if self.player.center.distance_to(village_center) <= village.safe_radius_tiles * Settings.TILE_SIZE:
+                        if village.location_id not in self.world.discovered_locations:
+                            self.world.discovered_locations.add(village.location_id)
+                            self.notifications.push(f"Local descoberto: {village.name}.")
+                            self._quest_event("explore", village.location_id, 1, {"location_id": village.location_id})
+            self.quest_system.update(dt, self.player, self.world.discovered_locations)
             self._drain_quest_messages()
+            for message in self.level_growth_system.apply_pending_growth(self.player):
+                self.notifications.push(message)
             if not self.player.alive:
                 self._handle_player_death()
         self.particles.update(dt)
@@ -849,6 +936,11 @@ class Game:
         if not self.player or not self.world:
             return
         self.player.drop_all_items(self.world)
+        if self.world.in_cave:
+            if self.exploration and self.world.current_cave_id:
+                self._cave_explorations[self.world.current_cave_id] = self.exploration.to_list()
+            self.world.exit_cave(self.player)
+            self._refresh_world_bounds_after_area_change("overworld")
         self.player.alive = True
         self.player.pos = self.world.spawn_pos.copy()
         self.player.hp = self.player.max_hp
@@ -938,6 +1030,10 @@ class Game:
         self.screen.blit(image, rect)
 
     def _draw_performance_debug(self) -> None:
+        loaded_chunks = len(self.world.chunk_manager.chunks) if self.world and getattr(self.world, "chunk_manager", None) else 0
+        active_chunks = len(self.world.chunk_manager.active_chunks) if self.world and getattr(self.world, "chunk_manager", None) else 0
+        active_area = "caverna" if self.world and self.world.in_cave else "mundo"
+        water_state = "sim" if self.water_system.player_in_water else "nao"
         lines = [
             f"FPS: {self.clock.get_fps():.0f}",
             f"Update: {self.performance_stats['update_ms']:.2f} ms",
@@ -945,9 +1041,11 @@ class Game:
             f"Entidades draw/update: {self.performance_stats['rendered_entities']}/{self.performance_stats['updated_entities']}",
             f"Particulas: {len(self.particles.particles)} total, {self.performance_stats['drawn_particles']} visiveis",
             f"Luzes processadas: {self.performance_stats['processed_lights']}",
+            f"Chunks ativos/carregados: {active_chunks}/{loaded_chunks}",
+            f"Area: {active_area} | Agua: {water_state}",
             f"Fase: {self.time_system.get_day_phase()} alpha {self.time_system.get_darkness_alpha()}",
         ]
-        panel = pygame.Rect(14, self.screen.get_height() - 178, 330, 158)
+        panel = pygame.Rect(14, self.screen.get_height() - 218, 355, 198)
         pygame.draw.rect(self.screen, (8, 10, 10, 210), panel, border_radius=6)
         pygame.draw.rect(self.screen, (76, 88, 80), panel, 1, border_radius=6)
         for index, line in enumerate(lines):
@@ -967,6 +1065,7 @@ class Game:
                 self.world.light_sources(self.weather_system),
                 self.player,
                 self.weather_system,
+                225 if self.world.in_cave else None,
             )
             self.performance_stats["processed_lights"] = processed
 
@@ -1417,6 +1516,21 @@ class Game:
             y += 24
         if item.is_weapon_like():
             draw_text(self.screen, f"Dano {item.damage} | Alcance {item.range}", (details.x + 18, y), COLORS["white"], 14)
+            y += 24
+        if slot.max_durability:
+            current = slot.max_durability if slot.durability is None else int(slot.durability)
+            ratio = current / max(1, slot.max_durability)
+            state = "Bom"
+            color = COLORS["accent_2"]
+            if ratio <= 0.10:
+                state = "Muito danificado"
+                color = COLORS["danger"]
+            elif ratio <= 0.25:
+                state = "Quase quebrando"
+                color = COLORS["energy"]
+            draw_text(self.screen, f"Durabilidade: {current}/{slot.max_durability}", (details.x + 18, y), COLORS["white"], 14)
+            y += 24
+            draw_text(self.screen, f"Estado: {int(ratio * 100)}% - {state}", (details.x + 18, y), color, 14, bold=True)
         self._draw_chest_action_buttons(details, item)
 
     def _selected_chest_slot(self) -> InventorySlot | None:
@@ -1458,7 +1572,7 @@ class Game:
         npc = self._nearest_npc(76)
         if npc:
             if npc.vendor and self.time_system.shop_is_open():
-                return "E - abrir loja de Mira"
+                return f"E - abrir loja de {npc.name}"
             return "E - conversar"
         structure = self.world.nearby_structure_with_interface(self.player.center, 64)
         if structure:
@@ -1469,6 +1583,11 @@ class Game:
             if structure.interface_kind() == "chest":
                 return "E/clique - abrir bau"
             return "E/clique - abrir interface"
+        if self.world.in_cave and self.world.cave_exit_near(self.player.center):
+            return "E - sair da caverna"
+        entrance = self.world.cave_entrance_near(self.player.center)
+        if entrance:
+            return "E - entrar na caverna"
         nearby = [node for node in self.world.resources if node.center.distance_to(self.player.center) < Settings.INTERACTION_RANGE]
         if nearby:
             return "Mouse esquerdo - usar ferramenta/atacar recurso"
@@ -1495,18 +1614,36 @@ class Game:
             return
         if self._try_fill_empty_cup():
             return
+        if self.world and self.world.in_cave and self.world.cave_exit_near(self.player.center):
+            if self.exploration and self.world.current_cave_id:
+                self._cave_explorations[self.world.current_cave_id] = self.exploration.to_list()
+            self.world.exit_cave(self.player)
+            self._refresh_world_bounds_after_area_change("overworld")
+            self.notifications.push("Voce saiu da caverna.")
+            return
+        if self.world:
+            entrance = self.world.cave_entrance_near(self.player.center)
+            if entrance:
+                if self.exploration:
+                    self._overworld_exploration_data = self.exploration.to_list()
+                self.world.enter_cave(entrance, self.player)
+                self._refresh_world_bounds_after_area_change(entrance.cave_id)
+                self.notifications.push("Voce entrou em uma caverna escura.")
+                self._quest_event("explore", entrance.cave_id, 1, {"location_id": entrance.cave_id})
+                return
         structure = self.world.nearby_structure_with_interface(self.player.center, 64) if self.world else None
         if structure:
             self._open_structure_interface(structure)
             return
         npc = self._nearest_npc(76)
         if npc:
-            target_id = "vendor_milo_root" if npc.vendor else "npc"
+            target_id = npc.vendor_id if npc.vendor and npc.vendor_id else "npc"
             self._quest_event("talk", target_id, 1)
             if npc.vendor and self.time_system.shop_is_open():
+                self.shop_system.set_active_vendor(npc.vendor_id)
                 self.active_panel = "shop"
-                self.notifications.push("Loja aberta.")
-                self._quest_event("open_shop", "vendor_milo_root", 1)
+                self.notifications.push(f"Loja aberta: {npc.name}.")
+                self._quest_event("open_shop", target_id, 1)
             else:
                 self.dialogue_ui.open(npc)
                 self.active_panel = "dialogue"
@@ -1563,6 +1700,7 @@ class Game:
         self.player.energy = max(0, self.player.energy - item.energy_cost)
         self.player.attack_timer = max(Settings.ATTACK_COOLDOWN, float(item.data.get("speed", 0.45)))
         self.player.set_attack_direction(mouse_world)
+        self.durability_system.apply_selected_use_damage(self.player, "resource", "wood_resource", self.notifications, correct=True)
         drop_pos = pygame.Vector2(structure.rect.center)
         for slot in self._structure_chest_contents(structure) or []:
             if slot:
@@ -1662,6 +1800,7 @@ class Game:
             self.notifications.push("Energia insuficiente para pescar.")
             return True
         self.player.energy -= item.energy_cost
+        self.durability_system.apply_selected_use_damage(self.player, "resource", "water", self.notifications, correct=True)
         caught = "small_fish" if self._rng.random() < 0.72 * self.weather_system.fishing_bonus() else "water_flask"
         self.world.spawn_ground_drop(mouse_world, caught, 1)
         self.player.skills.add_xp("Pescar", 8)
@@ -1675,15 +1814,29 @@ class Game:
         if not all([self.player, self.world, self.exploration]):
             self.notifications.push("Nada para salvar ainda.")
             return
+        current_exploration = self.exploration.to_list()
+        overworld_exploration = self._overworld_exploration_data
+        cave_explorations = dict(self._cave_explorations)
+        if self.world.in_cave:
+            if self.world.current_cave_id:
+                cave_explorations[self.world.current_cave_id] = current_exploration
+        else:
+            overworld_exploration = current_exploration
         data = {
             "player": self.player.to_dict(),
             "world": self.world.to_dict(),
-            "exploration": self.exploration.to_list(),
+            "exploration": current_exploration,
+            "area_exploration": {
+                "overworld": overworld_exploration,
+                "caves": cave_explorations,
+            },
             "time": self.time_system.to_dict(),
             "weather": self.weather_system.to_dict(),
             "shop": self.shop_system.to_dict(),
             "cooking": self.cooking_system.to_dict(),
             "quests": self.quest_system.to_dict(),
+            "water": self.water_system.to_dict(),
+            "mob_spawn": self.mob_spawn_system.to_dict(),
             "enemies": [
                 {
                     "kind": enemy.kind,
@@ -1710,6 +1863,9 @@ class Game:
                     "profession": npc.profession,
                     "pos": [npc.pos.x, npc.pos.y],
                     "vendor": npc.vendor,
+                    "vendor_id": npc.vendor_id,
+                    "location_id": npc.location_id,
+                    "dialogue": npc.dialogue,
                     "friendship": npc.friendship,
                     "romance": npc.romance,
                 }
@@ -1729,10 +1885,25 @@ class Game:
         self.player = Player.from_dict(data.get("player", {}), self.assets)
         self.camera = Camera(self.screen.get_size(), (self.world.pixel_width, self.world.pixel_height))
         self.exploration = MapExplorationSystem(self.world)
-        self.exploration.from_list(data.get("exploration", []))
+        legacy_exploration = data.get("exploration", [])
+        area_exploration = data.get("area_exploration", {})
+        self._overworld_exploration_data = area_exploration.get("overworld") or ([] if self.world.in_cave else legacy_exploration)
+        raw_cave_explorations = area_exploration.get("caves", {})
+        self._cave_explorations = {
+            str(cave_id): tiles
+            for cave_id, tiles in raw_cave_explorations.items()
+            if isinstance(tiles, list)
+        } if isinstance(raw_cave_explorations, dict) else {}
+        active_exploration = self._overworld_exploration_data
+        if self.world.in_cave and self.world.current_cave_id:
+            active_exploration = self._cave_explorations.get(self.world.current_cave_id, legacy_exploration)
+        self.exploration.from_list(active_exploration or [])
         self.time_system = TimeSystem.from_dict(data.get("time", {}))
         self.weather_system = WeatherSystem.from_dict(data.get("weather", {}))
         self.lighting_system = LightingSystem(self.screen.get_size())
+        self.water_system = WaterSystem.from_dict(data.get("water", {}))
+        self.level_growth_system = LevelGrowthSystem()
+        self.durability_system = DurabilitySystem()
         self.economy = EconomySystem()
         self.shop_system = ShopSystem(self.economy)
         self.shop_system.load_dict(data.get("shop", {}))
@@ -1744,14 +1915,24 @@ class Game:
         self.consumable_system = ConsumableSystem()
         self.cooking_system = CookingSystem.from_dict(data.get("cooking", {}))
         self.drop_system = DropSystem(self._rng)
+        self.mob_spawn_system = MobSpawnSystem.from_dict(data.get("mob_spawn", {}), self.world, self.player, self.time_system)
         self.npcs = []
         for raw in data.get("npcs", []):
-            npc = NPC(raw.get("name", "Mira"), raw.get("profession", "Vendedora"), raw.get("pos", self.world.vendor_pos), self.assets, bool(raw.get("vendor", False)))
+            npc = NPC(
+                raw.get("name", "Milo Raizforte"),
+                raw.get("profession", "Mercador"),
+                raw.get("pos", self.world.vendor_pos),
+                self.assets,
+                bool(raw.get("vendor", False)),
+                raw.get("vendor_id"),
+                raw.get("location_id"),
+                raw.get("dialogue"),
+            )
             npc.friendship = int(raw.get("friendship", 0))
             npc.romance = int(raw.get("romance", 0))
             self.npcs.append(npc)
         if not self.npcs:
-            self.npcs = [NPC("Mira", "Vendedora", self.world.vendor_pos, self.assets, vendor=True)]
+            self.npcs = self._spawn_npcs()
         self.enemies = []
         for raw in data.get("enemies", []):
             enemy = Enemy(raw.get("kind", "forest_slime"), raw.get("pos", self.world.spawn_pos), self.assets, int(raw.get("base_level", raw.get("level", 1))))

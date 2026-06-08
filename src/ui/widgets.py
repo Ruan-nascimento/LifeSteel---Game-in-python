@@ -116,6 +116,20 @@ def draw_item_tooltip(surface: pygame.Surface, item, pos: tuple[int, int], slot=
         lines.append((f"Ferramenta: {item.tool_type}", font_body, COLORS["white"]))
     if item.is_weapon_like():
         lines.append((f"Dano {item.damage} | Alcance {item.range}", font_body, COLORS["white"]))
+    if slot and hasattr(slot, "max_durability") and slot.max_durability:
+        current = slot.max_durability if slot.durability is None else int(slot.durability)
+        maximum = int(slot.max_durability)
+        ratio = current / max(1, maximum)
+        state = "Bom"
+        state_color = COLORS["accent_2"]
+        if ratio <= 0.10:
+            state = "Muito danificado"
+            state_color = COLORS["danger"]
+        elif ratio <= 0.25:
+            state = "Quase quebrando"
+            state_color = COLORS["energy"]
+        lines.append((f"Durabilidade: {current}/{maximum}", font_body, COLORS["white"]))
+        lines.append((f"Estado: {int(ratio * 100)}% - {state}", font_body, state_color))
     if item.is_building():
         lines.append(("Equipe e clique no mundo para colocar", font_body, COLORS["accent"]))
         

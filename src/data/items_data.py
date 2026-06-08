@@ -742,6 +742,291 @@ QUEST_UNIQUE_ITEMS = {
 ITEMS.update(QUEST_UNIQUE_ITEMS)
 
 
+WORLD_EXPANSION_ITEMS = {
+    "orange": {
+        "name": "Laranja",
+        "type": "food",
+        "category": "fruit",
+        "description": "Fruta citrica vendida em vilas e encontrada em bosques.",
+        "price": 18,
+        "stackable": True,
+        "max_stack": 20,
+        "hunger": 7,
+        "thirst": 4,
+        "buyable": True,
+        "sellable": True,
+        "icon_color": (238, 145, 45),
+    },
+    "tropical_juice": {
+        "name": "Suco Tropical",
+        "type": "drink",
+        "category": "juice",
+        "description": "Suco doce que recupera sede e um pouco de energia.",
+        "price": 48,
+        "stackable": True,
+        "max_stack": 10,
+        "thirst": 24,
+        "energy": 8,
+        "buyable": True,
+        "sellable": True,
+        "icon_color": (238, 114, 71),
+    },
+    "coal": {
+        "name": "Carvao",
+        "type": "material",
+        "category": "ore",
+        "description": "Combustivel simples para forjas futuras.",
+        "price": 16,
+        "stackable": True,
+        "max_stack": 99,
+        "buyable": True,
+        "sellable": True,
+        "icon_color": (54, 55, 53),
+    },
+    "copper_ingot": {
+        "name": "Barra de Cobre",
+        "type": "material",
+        "category": "bar",
+        "description": "Barra simples usada em ferramentas melhores.",
+        "price": 58,
+        "stackable": True,
+        "max_stack": 99,
+        "buyable": True,
+        "sellable": True,
+        "icon_color": (198, 113, 62),
+    },
+    "iron_ore": {
+        "name": "Minerio de Ferro",
+        "type": "material",
+        "category": "ore",
+        "description": "Minerio pesado encontrado em cavernas e areas rochosas.",
+        "price": 46,
+        "stackable": True,
+        "max_stack": 99,
+        "buyable": False,
+        "sellable": True,
+        "icon_color": (128, 129, 124),
+    },
+    "iron_ingot": {
+        "name": "Barra de Ferro",
+        "type": "material",
+        "category": "bar",
+        "description": "Metal forte para armas e ferramentas de nivel 5.",
+        "price": 110,
+        "stackable": True,
+        "max_stack": 99,
+        "buyable": True,
+        "sellable": True,
+        "icon_color": (171, 174, 170),
+    },
+    "cracked_crystal": {
+        "name": "Cristal Rachado",
+        "type": "material",
+        "category": "crystal",
+        "description": "Cristal instavel usado por alquimistas e magos.",
+        "price": 95,
+        "stackable": True,
+        "max_stack": 50,
+        "buyable": False,
+        "sellable": True,
+        "icon_color": (132, 210, 224),
+    },
+    "arcane_dust": {
+        "name": "Po Arcano",
+        "type": "material",
+        "category": "crystal",
+        "description": "Residuo magico deixado por criaturas espectrais.",
+        "price": 82,
+        "stackable": True,
+        "max_stack": 50,
+        "buyable": False,
+        "sellable": True,
+        "icon_color": (151, 106, 225),
+    },
+    "slime_gel": {
+        "name": "Gel de Slime",
+        "type": "material",
+        "category": "material",
+        "description": "Gel elastico usado em alquimia simples.",
+        "price": 12,
+        "stackable": True,
+        "max_stack": 99,
+        "buyable": False,
+        "sellable": True,
+        "icon_color": (82, 191, 112),
+    },
+    "night_fang": {
+        "name": "Presa Noturna",
+        "type": "material",
+        "category": "material",
+        "description": "Presa escura retirada de feras da noite.",
+        "price": 76,
+        "stackable": True,
+        "max_stack": 50,
+        "buyable": False,
+        "sellable": True,
+        "icon_color": (189, 195, 204),
+    },
+    "small_mana_potion": {
+        "name": "Pocao Pequena de Mana",
+        "type": "potion",
+        "category": "Pocoes",
+        "description": "Recupera 30 de mana.",
+        "price": 95,
+        "stackable": True,
+        "max_stack": 10,
+        "mana": 30,
+        "buyable": True,
+        "sellable": True,
+        "icon_color": (117, 100, 223),
+    },
+    "zyra_coin_pouch": {
+        "name": "Bolsa de ZyraCoins",
+        "type": "material",
+        "category": "Itens especiais",
+        "description": "Pequena bolsa de moedas encontrada em baus. Venda ou guarde como tesouro.",
+        "price": 1,
+        "stackable": True,
+        "max_stack": 99,
+        "buyable": False,
+        "sellable": True,
+        "icon_color": (225, 182, 70),
+    },
+    "varinha_de_raiz": {
+        "name": "Varinha de Raiz",
+        "type": "weapon",
+        "category": "wand",
+        "rarity": "rare",
+        "description": "Varinha natural encontrada em baus raros de caverna. Lanca magia de natureza fraca.",
+        "price": 420,
+        "stackable": False,
+        "damage": 8,
+        "range": 165,
+        "speed": 0.48,
+        "energy_cost": 1,
+        "mana_cost": 5,
+        "damage_type": "magico",
+        "tool_type": "wand",
+        "durability": 140,
+        "buyable": False,
+        "craftable": False,
+        "sellable": True,
+        "icon_color": (91, 151, 84),
+    },
+    "livro_feitico_luz_menor": {
+        "name": "Feitico: Luz Menor",
+        "type": "book",
+        "category": "magic_spell_book",
+        "rarity": "rare",
+        "description": "Ensina um feitico menor de luz apos 3 dias de leitura.",
+        "price": 360,
+        "stackable": False,
+        "buyable": False,
+        "craftable": False,
+        "sellable": True,
+        "reading_days": 3,
+        "functionalities": {
+            "reading_days": 3,
+            "target_skill": "magia",
+            "skill_xp_reward": 80,
+            "unlocks_abilities": ["minor_light_spell"]
+        },
+        "icon_color": (239, 220, 116),
+    },
+    "book_survival_basics": {
+        "name": "Manual de Sobrevivencia",
+        "type": "book",
+        "category": "book",
+        "rarity": "common",
+        "description": "Livro simples com truques de sobrevivencia.",
+        "price": 120,
+        "stackable": False,
+        "buyable": True,
+        "craftable": False,
+        "sellable": True,
+        "reading_days": 2,
+        "functionalities": {
+            "reading_days": 2,
+            "target_skill": "sobrevivencia",
+            "skill_xp_reward": 45
+        },
+        "icon_color": (160, 112, 72),
+    },
+    "varinha_de_cristal_rachado": {
+        "name": "Varinha de Cristal Rachado",
+        "type": "weapon",
+        "category": "wand",
+        "rarity": "epic",
+        "description": "Varinha epica de cristal instavel. Forte, mas exige mana.",
+        "price": 980,
+        "stackable": False,
+        "damage": 15,
+        "range": 185,
+        "speed": 0.5,
+        "energy_cost": 1,
+        "mana_cost": 8,
+        "damage_type": "magico",
+        "tool_type": "wand",
+        "durability": 120,
+        "buyable": False,
+        "craftable": False,
+        "sellable": True,
+        "icon_color": (138, 220, 235),
+    },
+    "tomo_da_pedra_viva": {
+        "name": "Tomo da Pedra Viva",
+        "type": "book",
+        "category": "magic_book",
+        "rarity": "epic",
+        "description": "Tomo profundo que desbloqueia uma defesa magica de pedra.",
+        "price": 900,
+        "stackable": False,
+        "buyable": False,
+        "craftable": False,
+        "sellable": True,
+        "reading_days": 4,
+        "functionalities": {
+            "reading_days": 4,
+            "target_skill": "magia",
+            "skill_xp_reward": 140,
+            "unlocks_abilities": ["living_stone_guard"]
+        },
+        "icon_color": (151, 147, 127),
+    },
+}
+
+ITEMS.update({item_id: data for item_id, data in WORLD_EXPANSION_ITEMS.items() if item_id not in ITEMS})
+
+
+def _default_durability_for_item(item_id: str, data: dict) -> int | None:
+    if data.get("type") not in {"weapon", "tool"}:
+        return None
+    if "wood" in item_id:
+        return 35
+    if "stone" in item_id:
+        return 50
+    if "copper" in item_id:
+        return 90
+    if "iron" in item_id:
+        return 160
+    if "crystal" in item_id or data.get("category") == "wand":
+        return 120
+    if data.get("rarity") in {"rare", "epic", "legendary"}:
+        return 140
+    if data.get("durability") or data.get("max_durability"):
+        return int(data.get("max_durability", data.get("durability")))
+    return 60
+
+
+for _item_id, _item_data in ITEMS.items():
+    _durability = _default_durability_for_item(_item_id, _item_data)
+    if _durability:
+        _item_data["durability"] = _durability
+        _item_data["max_durability"] = _durability
+        _item_data["stackable"] = False
+        _item_data["max_stack"] = 1
+
+
 CATEGORIES = [
     "Armas",
     "Ferramentas",

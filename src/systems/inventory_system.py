@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from uuid import uuid4
 
 from src.data.items_data import ITEMS
 from src.items.item import Item, make_item
@@ -11,6 +12,7 @@ class InventorySlot:
     item_id: str
     quantity: int = 1
     durability: int | None = None
+    instance_id: str | None = None
     contents: list["InventorySlot | None"] | None = None
 
     @property
@@ -26,6 +28,8 @@ class InventorySlot:
             "item_id": self.item_id,
             "quantity": self.quantity,
             "durability": self.durability,
+            "max_durability": self.max_durability,
+            "instance_id": self.instance_id,
             "contents": [
                 slot.to_dict() if slot else None
                 for slot in self.contents
@@ -38,6 +42,7 @@ class InventorySlot:
             item_id=data["item_id"],
             quantity=int(data.get("quantity", 1)),
             durability=data.get("durability"),
+            instance_id=data.get("instance_id"),
             contents=[
                 cls.from_dict(slot) if slot else None
                 for slot in data.get("contents") or []
@@ -46,6 +51,18 @@ class InventorySlot:
 
     def clone(self) -> "InventorySlot":
         return InventorySlot.from_dict(self.to_dict())
+
+    @property
+    def max_durability(self) -> int | None:
+        data = ITEMS.get(self.item_id, {})
+        value = data.get("max_durability", data.get("durability"))
+        return int(value) if value else None
+
+    def ensure_instance(self) -> None:
+        if self.instance_id is None and self.max_durability:
+            self.instance_id = f"item_{uuid4().hex[:12]}"
+        if self.durability is None and self.max_durability:
+            self.durability = self.max_durability
 
     @property
     def container_capacity(self) -> int:
@@ -79,8 +96,14 @@ class Inventory:
             return quantity
 
         data = ITEMS[item_id]
+        default_durability = data.get("max_durability", data.get("durability"))
+        if durability is None and default_durability and not data.get("stackable", True):
+            durability = int(default_durability)
         max_stack = int(data.get("max_stack", 1 if not data.get("stackable", True) else 99))
         stackable = bool(data.get("stackable", True))
+        if durability is not None:
+            stackable = False
+            max_stack = 1
 
         if stackable:
             for slot in self.slots:
@@ -94,9 +117,10 @@ class Inventory:
         for index, slot in enumerate(self.slots):
             if slot is None:
                 moved = min(quantity, max_stack)
-                slot = InventorySlot(item_id, moved, durability)
+                slot = InventorySlot(item_id, moved, durability, f"item_{uuid4().hex[:12]}" if durability is not None else None)
                 if ITEMS[item_id].get("container_slots"):
                     slot.ensure_contents()
+                slot.ensure_instance()
                 self.slots[index] = slot
                 quantity -= moved
                 if quantity <= 0:
@@ -129,7 +153,8 @@ class Inventory:
     def add_slot(self, incoming: InventorySlot) -> bool:
         slot = incoming.clone()
         data = ITEMS.get(slot.item_id, {})
-        stackable = bool(data.get("stackable", True)) and slot.contents is None
+        slot.ensure_instance()
+        stackable = bool(data.get("stackable", True)) and slot.contents is None and slot.durability is None
         max_stack = int(data.get("max_stack", 1 if not stackable else 99))
         if stackable:
             remaining = slot.quantity
@@ -193,7 +218,7 @@ class Inventory:
         slot = self.slots[index]
         if not slot:
             return None
-        removed = InventorySlot(slot.item_id, min(quantity, slot.quantity), slot.durability, [
+        removed = InventorySlot(slot.item_id, min(quantity, slot.quantity), slot.durability, slot.instance_id, [
             content.clone() if content else None
             for content in slot.contents
         ] if slot.contents is not None else None)

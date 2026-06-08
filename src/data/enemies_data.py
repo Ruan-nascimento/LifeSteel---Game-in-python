@@ -1,3 +1,7 @@
+from src.core.json_loader import load_json
+from src.core.settings import BASE_DIR
+
+
 ENEMY_TYPES = {
     "forest_slime": {
         "name": "Slime da Floresta",
@@ -130,3 +134,44 @@ ENEMY_ORDER = [
     "mud_crab",
     "ice_wisp",
 ]
+
+
+def _load_json_mobs() -> None:
+    data = load_json(BASE_DIR / "src" / "data" / "mobs.json", {"mobs": []})
+    for mob in data.get("mobs", []):
+        mob_id = mob.get("id")
+        if not mob_id or mob_id in ENEMY_TYPES:
+            continue
+        stats = mob.get("stats", {})
+        drops = {
+            drop["id"]: (float(drop.get("chance", 0)), int(drop.get("min", 1)), int(drop.get("max", 1)))
+            for drop in mob.get("drops", [])
+            if drop.get("id")
+        }
+        level = int(mob.get("level", 1))
+        ENEMY_TYPES[mob_id] = {
+            "name": mob.get("name", mob_id),
+            "biome": ",".join(mob.get("biomes", [])),
+            "base_hp": int(stats.get("health", 25)),
+            "hp_per_level": max(5, int(stats.get("health", 25)) // 4),
+            "base_damage": int(stats.get("damage", 5)),
+            "damage_per_level": max(1, int(stats.get("damage", 5)) // 4),
+            "speed": float(stats.get("speed", 70)),
+            "aggro_range": int(stats.get("aggro_range", 230)),
+            "attack_range": int(stats.get("attack_range", 150 if stats.get("ranged") else 34)),
+            "ranged": bool(stats.get("ranged", False)),
+            "fragile": mob.get("rarity") in {"common", "uncommon"} and int(stats.get("health", 25)) < 40,
+            "color": tuple(stats.get("color", (94 + level * 18, 90 + level * 8, 88 + level * 12))),
+            "xp": int(stats.get("xp_reward", 12)),
+            "coins": int(stats.get("coins", level * 5)),
+            "drops": drops,
+            "spawn_phases": mob.get("spawn_phases", []),
+            "biomes": mob.get("biomes", []),
+            "max_per_chunk": int(mob.get("max_per_chunk", 2)),
+            "spawn_level": level,
+            "rarity": mob.get("rarity", "common"),
+        }
+        ENEMY_ORDER.append(mob_id)
+
+
+_load_json_mobs()

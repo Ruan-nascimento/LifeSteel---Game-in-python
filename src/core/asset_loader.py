@@ -186,6 +186,12 @@ class AssetLoader:
             elif kind == "ice_wisp":
                 pygame.draw.polygon(surface, color, [(17, 2), (28, 14), (20, 28), (8, 24), (5, 11)])
                 pygame.draw.polygon(surface, (231, 252, 255), [(17, 7), (23, 15), (18, 22), (11, 19), (10, 12)])
+            else:
+                pygame.draw.ellipse(surface, color, (4, 7, 26, 20))
+                pygame.draw.circle(surface, (235, 232, 218), (13, 15), 2)
+                pygame.draw.circle(surface, (235, 232, 218), (21, 15), 2)
+                if data.get("ranged"):
+                    pygame.draw.line(surface, (220, 215, 185), (17, 6), (28, 2), 2)
             result[kind] = surface
         return result
 

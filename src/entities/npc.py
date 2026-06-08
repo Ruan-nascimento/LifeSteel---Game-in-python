@@ -8,15 +8,17 @@ from src.entities.entity import Entity
 
 
 class NPC(Entity):
-    def __init__(self, name: str, profession: str, pos, asset_loader, vendor: bool = False) -> None:
+    def __init__(self, name: str, profession: str, pos, asset_loader, vendor: bool = False, vendor_id: str | None = None, location_id: str | None = None, dialogue: list[str] | None = None) -> None:
         super().__init__(pos, size=(28, 40), hp=80)
         self.name = name
         self.profession = profession
         self.assets = asset_loader
         self.vendor = vendor
+        self.vendor_id = vendor_id or ("vendor_milo_root" if vendor else None)
+        self.location_id = location_id
         self.friendship = 0
         self.romance = 0
-        self.dialogue = [
+        self.dialogue = dialogue or [
             "A floresta parece calma hoje.",
             "A loja abre enquanto houver luz suficiente.",
             "Comunicacao alta sempre melhora bons acordos.",

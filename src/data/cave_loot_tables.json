@@ -1,0 +1,28 @@
+{
+  "loot_tables": {
+    "common": [
+      {"id": "coins", "min": 20, "max": 100, "chance": 1.0},
+      {"id": "apple", "min": 1, "max": 3, "chance": 0.55},
+      {"id": "stone", "min": 3, "max": 8, "chance": 0.65},
+      {"id": "small_health_potion", "min": 1, "max": 1, "chance": 0.25}
+    ],
+    "uncommon": [
+      {"id": "coins", "min": 100, "max": 250, "chance": 1.0},
+      {"id": "book_survival_basics", "min": 1, "max": 1, "chance": 0.3},
+      {"id": "copper_ore", "min": 1, "max": 4, "chance": 0.55},
+      {"id": "stone_pickaxe", "min": 1, "max": 1, "chance": 0.18}
+    ],
+    "rare": [
+      {"id": "coins", "min": 250, "max": 600, "chance": 1.0},
+      {"id": "livro_feitico_luz_menor", "min": 1, "max": 1, "chance": 0.35},
+      {"id": "varinha_de_raiz", "min": 1, "max": 1, "chance": 0.25},
+      {"id": "small_mana_potion", "min": 1, "max": 2, "chance": 0.45}
+    ],
+    "epic": [
+      {"id": "coins", "min": 600, "max": 1200, "chance": 1.0},
+      {"id": "varinha_de_cristal_rachado", "min": 1, "max": 1, "chance": 0.28},
+      {"id": "tomo_da_pedra_viva", "min": 1, "max": 1, "chance": 0.3},
+      {"id": "fragmento_arcano_instavel", "min": 1, "max": 1, "chance": 0.16}
+    ]
+  }
+}

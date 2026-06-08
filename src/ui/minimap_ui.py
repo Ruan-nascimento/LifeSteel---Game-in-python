@@ -24,6 +24,11 @@ class MinimapUI:
         "soil": (145, 95, 56),
     }
 
+    def __init__(self) -> None:
+        self._cache_surface: pygame.Surface | None = None
+        self._cache_key = None
+        self._cache_time = 0
+
     def draw(self, surface: pygame.Surface, world, exploration, player, npcs=None, enemies=None, rect: pygame.Rect | None = None, expanded: bool = False) -> None:
         rect = rect or pygame.Rect(surface.get_width() - 205, surface.get_height() - 205, 185, 185)
         pygame.draw.rect(surface, COLORS["panel_dark"], rect, border_radius=6)
@@ -32,20 +37,29 @@ class MinimapUI:
         inner.y += 10
         cell_w = inner.width / world.width
         cell_h = inner.height / world.height
-        step = 1 if expanded else 2
-        for ty in range(0, world.height, step):
-            for tx in range(0, world.width, step):
-                if not exploration.is_explored(tx, ty):
-                    continue
-                tile = world.tiles[ty][tx]
-                color = self.TILE_COLORS.get(tile.kind, COLORS["grass"])
-                draw_rect = pygame.Rect(
-                    inner.x + int(tx * cell_w),
-                    inner.y + int(ty * cell_h),
-                    max(1, int(cell_w * step) + 1),
-                    max(1, int(cell_h * step) + 1),
-                )
-                surface.fill(color, draw_rect)
+        now = pygame.time.get_ticks()
+        explored_count = len(exploration.explored)
+        cache_key = (world.seed, world.width, world.height, inner.size, expanded, explored_count, getattr(world, "current_cave_id", None))
+        if expanded or self._cache_surface is None or self._cache_key != cache_key or now - self._cache_time > int(Settings.MINIMAP_UPDATE_INTERVAL * 1000):
+            self._cache_surface = pygame.Surface(inner.size, pygame.SRCALPHA)
+            step = 2 if expanded else 4
+            for ty in range(0, world.height, step):
+                for tx in range(0, world.width, step):
+                    if not exploration.is_explored(tx, ty):
+                        continue
+                    tile = world.tiles[ty][tx]
+                    color = self.TILE_COLORS.get(tile.kind, COLORS["grass"])
+                    draw_rect = pygame.Rect(
+                        int(tx * cell_w),
+                        int(ty * cell_h),
+                        max(1, int(cell_w * step) + 1),
+                        max(1, int(cell_h * step) + 1),
+                    )
+                    self._cache_surface.fill(color, draw_rect)
+            self._cache_key = cache_key
+            self._cache_time = now
+        if self._cache_surface:
+            surface.blit(self._cache_surface, inner.topleft)
 
         if expanded:
             for resource in world.resources[:: max(1, len(world.resources) // 800)]:
@@ -61,6 +75,16 @@ class MinimapUI:
             tx, ty = structure.tile
             if exploration.is_explored(tx, ty):
                 pygame.draw.rect(surface, COLORS["accent"], (inner.x + int(tx * cell_w), inner.y + int(ty * cell_h), 3, 3))
+
+        if expanded:
+            for village in getattr(world, "villages", []):
+                tx, ty = village.tile
+                if exploration.is_explored(tx, ty):
+                    pygame.draw.rect(surface, (240, 222, 96), (inner.x + int(tx * cell_w) - 2, inner.y + int(ty * cell_h) - 2, 5, 5))
+            for entrance in getattr(world, "cave_entrances", []):
+                tx, ty = entrance.tile
+                if exploration.is_explored(tx, ty):
+                    pygame.draw.circle(surface, (38, 32, 40), (inner.x + int(tx * cell_w), inner.y + int(ty * cell_h)), 3)
 
         if npcs:
             for npc in npcs:

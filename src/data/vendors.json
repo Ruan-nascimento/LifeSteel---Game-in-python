@@ -1,0 +1,108 @@
+{
+  "vendors": [
+    {
+      "id": "vendor_milo_root",
+      "name": "Milo Raizforte",
+      "title": "Mercador da Clareira",
+      "location": "Clareira Inicial",
+      "shop_type": "general_store",
+      "available_from_level": 1,
+      "sells_categories": ["tool", "weapon", "food", "drink", "material", "book", "building", "utility"],
+      "buys_categories": ["any"],
+      "opening_hours": {"open": "07:00", "close": "20:00"},
+      "dialogues": {
+        "first_meeting": "Ora, ora... alguem perdido na floresta?",
+        "normal": "Veja com calma. Ferramenta ruim quebra rapido, mas e melhor que mao vazia.",
+        "quest_available": "A clareira sempre tem trabalho para quem sabe sobreviver."
+      }
+    },
+    {
+      "id": "vendor_luma_fruit",
+      "name": "Luma Frutalia",
+      "title": "Vendedora de Frutas",
+      "location": "Vila da Clareira",
+      "shop_type": "fruit_shop",
+      "available_from_level": 1,
+      "sells_categories": ["fruit", "juice", "seed", "food", "drink"],
+      "buys_categories": ["fruit", "seed", "food"],
+      "opening_hours": {"open": "06:00", "close": "18:00"},
+      "dialogues": {
+        "first_meeting": "Fruta boa salva aventureiro ruim!",
+        "normal": "Quer algo doce, fresco ou barato?",
+        "quest_available": "Voce parece alguem que sabe subir em arvore..."
+      }
+    },
+    {
+      "id": "vendor_bronn_ores",
+      "name": "Bronn Pedrabruta",
+      "title": "Mercador de Minerios",
+      "location": "Vila da Pedra Baixa",
+      "shop_type": "ore_shop",
+      "available_from_level": 2,
+      "sells_categories": ["ore", "bar", "tool", "material"],
+      "buys_categories": ["ore", "bar", "stone", "crystal", "material"],
+      "opening_hours": {"open": "07:00", "close": "19:00"},
+      "dialogues": {"normal": "Pedra boa nao mente. Ela pesa."}
+    },
+    {
+      "id": "vendor_nara_fish",
+      "name": "Nara Anzolino",
+      "title": "Pescadora Mercadora",
+      "location": "Vila Ribeirinha",
+      "shop_type": "fish_shop",
+      "available_from_level": 2,
+      "sells_categories": ["fish", "food", "tool", "bait"],
+      "buys_categories": ["fish", "water", "food"],
+      "opening_hours": {"open": "05:00", "close": "18:00"},
+      "dialogues": {"normal": "Peixe fresco e paciencia: os dois escapam facil."}
+    },
+    {
+      "id": "vendor_silas_books",
+      "name": "Silas Tinta-Velha",
+      "title": "Livreiro",
+      "location": "Acampamento Arcano",
+      "shop_type": "book_shop",
+      "available_from_level": 3,
+      "sells_categories": ["book", "magic_book", "magic_spell_book"],
+      "buys_categories": ["book", "magic_book", "magic_spell_book"],
+      "opening_hours": {"open": "08:00", "close": "22:00"},
+      "dialogues": {"normal": "Toda pagina que sobreviveu a uma caverna quer ser lida."}
+    },
+    {
+      "id": "vendor_mirella_alchemy",
+      "name": "Mirella Caldeirao",
+      "title": "Alquimista",
+      "location": "Acampamento Arcano",
+      "shop_type": "alchemy_shop",
+      "available_from_level": 3,
+      "sells_categories": ["potion", "herb", "mushroom", "crystal", "material"],
+      "buys_categories": ["potion", "herb", "mushroom", "crystal", "material"],
+      "opening_hours": {"open": "09:00", "close": "21:00"},
+      "dialogues": {"normal": "Se borbulhar bonito, talvez ainda esteja seguro."}
+    },
+    {
+      "id": "vendor_garron_blacksmith",
+      "name": "Garron Forjamao",
+      "title": "Ferreiro",
+      "location": "Vila da Pedra Baixa",
+      "shop_type": "blacksmith",
+      "available_from_level": 3,
+      "sells_categories": ["weapon", "tool", "bar", "ore"],
+      "buys_categories": ["weapon", "tool", "bar", "ore", "material"],
+      "opening_hours": {"open": "07:00", "close": "20:00"},
+      "dialogues": {"normal": "Arma sem cuidado vira sucata com cabo."}
+    },
+    {
+      "id": "vendor_teca_wood",
+      "name": "Teca Tronco-Manso",
+      "title": "Madeireira",
+      "location": "Floresta Densa",
+      "shop_type": "wood_shop",
+      "available_from_level": 2,
+      "sells_categories": ["wood", "tool", "building", "material"],
+      "buys_categories": ["wood", "fiber", "material"],
+      "opening_hours": {"open": "06:00", "close": "18:00"},
+      "dialogues": {"normal": "Madeira boa canta antes de virar casa."}
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "locations": [
+    {
+      "id": "initial_clearing",
+      "name": "Clareira Inicial",
+      "type": "camp",
+      "safe_radius_tiles": 8,
+      "vendors": ["vendor_milo_root"],
+      "biome": "clearing"
+    },
+    {
+      "id": "village_clearing",
+      "name": "Vila da Clareira",
+      "type": "village",
+      "safe_radius_tiles": 10,
+      "vendors": ["vendor_luma_fruit", "vendor_teca_wood"],
+      "biome": "village_region"
+    },
+    {
+      "id": "village_low_stone",
+      "name": "Vila da Pedra Baixa",
+      "type": "village",
+      "safe_radius_tiles": 10,
+      "vendors": ["vendor_bronn_ores", "vendor_garron_blacksmith"],
+      "biome": "rocky"
+    },
+    {
+      "id": "village_riverside",
+      "name": "Vila Ribeirinha",
+      "type": "village",
+      "safe_radius_tiles": 10,
+      "vendors": ["vendor_nara_fish"],
+      "biome": "lake"
+    },
+    {
+      "id": "arcane_camp",
+      "name": "Acampamento Arcano",
+      "type": "village",
+      "safe_radius_tiles": 8,
+      "vendors": ["vendor_silas_books", "vendor_mirella_alchemy"],
+      "biome": "dense_forest"
+    }
+  ]
+}

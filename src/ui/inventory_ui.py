@@ -154,6 +154,21 @@ class InventoryUI:
         if item.is_weapon_like():
             draw_text(surface, f"Dano {item.damage} | Alcance {item.range}", (details.x + 18, y), COLORS["white"], 14)
             y += 24
+        if slot.max_durability:
+            current = slot.max_durability if slot.durability is None else int(slot.durability)
+            ratio = current / max(1, slot.max_durability)
+            state = "Bom"
+            color = COLORS["accent_2"]
+            if ratio <= 0.10:
+                state = "Muito danificado"
+                color = COLORS["danger"]
+            elif ratio <= 0.25:
+                state = "Quase quebrando"
+                color = COLORS["energy"]
+            draw_text(surface, f"Durabilidade: {current}/{slot.max_durability}", (details.x + 18, y), COLORS["white"], 14)
+            y += 24
+            draw_text(surface, f"Estado: {int(ratio * 100)}% - {state}", (details.x + 18, y), color, 14, bold=True)
+            y += 24
         if item.is_building():
             draw_text(surface, "Equipe e clique no mundo para colocar.", (details.x + 18, y), COLORS["accent"], 13, bold=True)
             y += 24

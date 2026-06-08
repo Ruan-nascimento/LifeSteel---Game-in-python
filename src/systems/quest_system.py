@@ -87,6 +87,11 @@ class Quest:
     category: str
     description: str
     giver: str
+    giver_id: str | None
+    location_required: str | None
+    requires_discovered_location: bool
+    requires_completed_quests: list[str]
+    requires_skill_level: dict[str, int]
     auto_start: bool
     objectives: list[QuestObjective]
     rewards: dict[str, Any]
@@ -102,6 +107,14 @@ class Quest:
             category=str(data.get("category", "survival")),
             description=str(data.get("description", "")),
             giver=str(data.get("giver", "Milo Raizforte")),
+            giver_id=data.get("giver_id"),
+            location_required=data.get("location_required"),
+            requires_discovered_location=bool(data.get("requires_discovered_location", False)),
+            requires_completed_quests=list(data.get("requires_completed_quests", [])),
+            requires_skill_level={
+                normalize_skill_name(key): int(value)
+                for key, value in (data.get("requires_skill_level", {}) or {}).items()
+            },
             auto_start=bool(data.get("auto_start", False)),
             objectives=[QuestObjective.from_dict(raw, index) for index, raw in enumerate(data.get("objectives", []))],
             rewards=dict(data.get("rewards", {})),
@@ -154,7 +167,7 @@ class QuestSystem:
         self.unique_rewards_received: set[str] = set()
         self.pending_messages: list[str] = []
         self.message = "Missoes prontas."
-        self.unlock_quests_for_level(self._player_level(player), notify=False)
+        self.unlock_quests_for_level(self._player_level(player), player=player, notify=False)
 
     @property
     def quests(self) -> dict[str, QuestState]:
@@ -165,11 +178,13 @@ class QuestSystem:
             return int(getattr(player.level, "level", 1))
         return 1
 
-    def unlock_quests_for_level(self, level: int, notify: bool = True) -> list[str]:
+    def unlock_quests_for_level(self, level: int, player=None, discovered_locations: set[str] | None = None, notify: bool = True) -> list[str]:
         messages: list[str] = []
         for quest in sorted(self.quest_defs.values(), key=lambda item: (item.level_required, item.quest_id)):
             state = self.states[quest.quest_id]
             if state.status != "locked" or level < quest.level_required:
+                continue
+            if not self._quest_prerequisites_met(quest, player, discovered_locations or set()):
                 continue
             state.status = "active" if quest.auto_start else "available"
             if notify:
@@ -179,6 +194,19 @@ class QuestSystem:
         if messages:
             self.message = messages[-1]
         return messages
+
+    def _quest_prerequisites_met(self, quest: Quest, player=None, discovered_locations: set[str] | None = None) -> bool:
+        discovered_locations = discovered_locations or set()
+        if quest.requires_discovered_location and quest.location_required and quest.location_required not in discovered_locations:
+            return False
+        for required_quest in quest.requires_completed_quests:
+            if self.quest_status(required_quest) != "claimed":
+                return False
+        if player and quest.requires_skill_level:
+            for skill, level in quest.requires_skill_level.items():
+                if player.skills.level(skill) < level:
+                    return False
+        return True
 
     def accept_quest(self, quest_id: str) -> tuple[bool, str]:
         state = self.states.get(quest_id)
@@ -193,8 +221,8 @@ class QuestSystem:
         self.message = f"Missao aceita: {quest.title}."
         return True, self.message
 
-    def update(self, dt: float = 0.0, player=None) -> None:
-        self.unlock_quests_for_level(self._player_level(player), notify=True)
+    def update(self, dt: float = 0.0, player=None, discovered_locations: set[str] | None = None) -> None:
+        self.unlock_quests_for_level(self._player_level(player), player=player, discovered_locations=discovered_locations, notify=True)
 
     def update_objective(
         self,
@@ -366,7 +394,7 @@ class QuestSystem:
         self.update_objective("build", building_id, amount)
 
     def update_completion(self, player) -> list[str]:
-        self.unlock_quests_for_level(self._player_level(player), notify=True)
+        self.unlock_quests_for_level(self._player_level(player), player=player, notify=True)
         completed: list[str] = []
         for quest_id, state in self.states.items():
             if state.status == "active" and self.check_completion(quest_id):
@@ -446,7 +474,7 @@ class QuestSystem:
             system.unique_rewards_received = {str(item_id) for item_id in data.get("unique_rewards_received", [])}
         else:
             system._load_legacy_state(data)
-        system.unlock_quests_for_level(system._player_level(player), notify=False)
+        system.unlock_quests_for_level(system._player_level(player), player=player, notify=False)
         return system
 
     def _load_legacy_state(self, data: dict[str, Any]) -> None:

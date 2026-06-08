@@ -37,7 +37,11 @@ O projeto usa `pygame-ce>=2.5,<3`. No PyPI, a linha 2.5.x e a linha estavel atua
 
 - Tela inicial, configuracoes e criacao de personagem.
 - Seis classes iniciais com arma, vantagens, desvantagens e atributos.
-- Mundo top-down de floresta com camera seguindo o jogador.
+- Mundo top-down 4x maior que a versao inicial, com camera seguindo o jogador.
+- Mundo dividido em chunks ativos/visiveis para reduzir processamento fora da regiao do jogador.
+- Geracao procedural por seed com biomas de floresta, clareira, campo, lago, pantano, floresta densa e areas rochosas.
+- Povoados gerados no mapa com zonas seguras, placas e vendedores especializados por local.
+- Cavernas aleatorias com entrada no mundo, saida interna, escuridao reforcada, recursos, baus e loot por raridade.
 - HUD com HP, XP, fome, sede, energia, mana, moedas, relogio, clima, hotbar e minimapa.
 - Aba de missoes em `J`, com lista de quests liberadas, ativas, completas e recompensas para resgatar.
 - Missões iniciais dos niveis 1 a 5 carregadas de `src/data/quests.json`, com progresso salvo junto do save.
@@ -48,10 +52,10 @@ O projeto usa `pygame-ce>=2.5,<3`. No PyPI, a linha 2.5.x e a linha estavel atua
 - Consumo por `Q` do item consumivel equipado, sempre 1 unidade por vez.
 - Consumiveis aplicam `Vida`, `Fome`, `Sede`, `Energia`, `Mana` e `mana_percent`, com efeitos positivos e negativos respeitando os limites do jogador.
 - Coleta com ferramentas: arvores, pedras, minerio, arbustos e solo.
-- NPC vendedor fisico no mapa; loja abre apenas por proximidade.
+- NPCs vendedores fisicos no mapa; loja abre apenas por proximidade e cada vendedor tem estoque/compra por especialidade.
 - Precos com desconto por Comunicacao e bonus de venda por Comercio/Politica.
 - XP geral, level, skills individuais e desbloqueios de loja/crafting.
-- Sete tipos de monstros com nome, nivel, bioma, escalonamento de HP/dano e alguns ataques a distancia.
+- Monstros definidos em `src/data/mobs.json`, com spawn aleatorio por dia/noite, bioma, caverna, limite por chunk e escalonamento de HP/dano.
 - Animais iniciais: porcos, vacas e galinhas, com drops de carne, couro, pele, penas e ovos.
 - Sistema de fome/sede ajustado: fome cai 1 a cada 10s; sede cai 2 a cada 10s e 5 a cada 10s correndo.
 - Corrida fica bloqueada se fome ou sede estiverem abaixo de 30%.
@@ -72,11 +76,25 @@ O projeto usa `pygame-ce>=2.5,<3`. No PyPI, a linha 2.5.x e a linha estavel atua
 - Tochas iluminam a noite e apagam durante chuva/tempestade.
 - Ciclo de dia/noite com fases `day`, `sunset`, `night` e `dawn`.
 - Sistema de iluminacao por camada preta com recortes transparentes para jogador, tochas, fogueira e fogao, sem halos brancos.
-- Mapa/minimapa com exploracao revelada.
-- Otimizacoes de render com culling de entidades fora da tela, limite de particulas e cache de mascaras de luz.
+- Mapa/minimapa com exploracao revelada, cache de desenho e icones de povoados/cavernas no mapa expandido.
+- Sistema de agua: nadar reduz velocidade, drena energia e causa dano progressivo se a energia chegar a zero.
+- Level up aumenta atributos maximos por classe usando `src/data/level_growth.json`.
+- Ferramentas e armas tem durabilidade real, tooltip, persistencia no save e quebram quando chegam a zero.
+- Missoes especificas por local/NPC sao liberadas ao descobrir povoados ou atender requisitos.
+- Otimizacoes de render/update com chunks ativos, culling de entidades fora da tela, limite de particulas e cache de mascaras de luz.
 - Overlay `F3` com FPS, tempo de update/render, entidades, particulas e luzes processadas.
-- Save/load em JSON em `saves/save_01.json`.
+- Save/load em JSON em `saves/save_01.json`, incluindo chunks modificados, cavernas, povoados, exploracao por area, mobs, agua, quests e durabilidade.
 - Assets placeholder gerados por codigo e pastas de assets organizadas para substituicao futura.
+
+## Testes manuais sugeridos
+
+- Criar um jogo novo e confirmar que o mapa abre 320x320 tiles, com spawn seguro e bancada/fogueira iniciais.
+- Andar ate um povoado, ver a notificacao de descoberta, falar com cada vendedor e conferir estoque especializado.
+- Entrar em uma caverna, abrir bau, coletar loot, sair com `E` e salvar/carregar dentro e fora da caverna.
+- Esperar dia/noite em biomas diferentes e confirmar spawn de mobs sem nascerem dentro de agua ou de zona segura.
+- Entrar na agua ate zerar energia e verificar dano progressivo; sair da agua deve interromper o afogamento.
+- Usar ferramentas corretas e erradas em recursos, observar durabilidade no tooltip e confirmar quebra ao chegar em zero.
+- Subir de nivel e confirmar aumento dos atributos maximos conforme a classe.
 
 ## Estrutura
 

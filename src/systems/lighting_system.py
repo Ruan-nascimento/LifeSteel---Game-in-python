@@ -48,8 +48,10 @@ class LightingSystem:
         self._mask_cache[cache_key] = mask
         return mask
 
-    def render(self, surface: pygame.Surface, camera, time_system, light_sources, player=None, weather_system=None) -> int:
+    def render(self, surface: pygame.Surface, camera, time_system, light_sources, player=None, weather_system=None, force_alpha: int | None = None) -> int:
         alpha = int(time_system.get_darkness_alpha())
+        if force_alpha is not None:
+            alpha = max(alpha, int(force_alpha))
         if weather_system and getattr(weather_system, "current", "") == "Nevoeiro":
             alpha = min(230, alpha + 24)
         if alpha <= 0:

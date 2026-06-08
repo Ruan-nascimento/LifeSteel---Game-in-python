@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import unicodedata
 
+from src.core.json_loader import load_json
+from src.core.settings import BASE_DIR
 from src.data.items_data import ITEMS
 from src.data.shop_data import SHOP_STOCK
 from src.systems.item_system import ITEM_DATABASE, ItemDatabase
@@ -17,6 +19,8 @@ DEFAULT_SELLERS = {
     "cacador",
 }
 
+VENDORS_PATH = BASE_DIR / "src" / "data" / "vendors.json"
+
 
 def seller_key(value: str | None) -> str:
     if not value:
@@ -29,10 +33,23 @@ class ShopSystem:
     def __init__(self, economy, database: ItemDatabase | None = None) -> None:
         self.economy = economy
         self.database = database or ITEM_DATABASE
+        self.vendor_defs = {
+            vendor["id"]: vendor
+            for vendor in load_json(VENDORS_PATH, {"vendors": []}).get("vendors", [])
+            if vendor.get("id")
+        }
         self.stock = self._build_initial_stock()
         self.message = "Bem-vindo ao mercador da clareira."
-        self.active_vendor = ShopVendor(self.database.get_vendor() or {})
+        self.active_vendor = ShopVendor(self._vendor_data("vendor_milo_root"))
         self.last_transaction: dict | None = None
+
+    def _vendor_data(self, vendor_id: str) -> dict:
+        data = self.vendor_defs.get(vendor_id) or self.database.get_vendor(vendor_id) or self.database.get_vendor() or {}
+        return data
+
+    def set_active_vendor(self, vendor_id: str | None) -> None:
+        self.active_vendor = ShopVendor(self._vendor_data(vendor_id or "vendor_milo_root"))
+        self.message = f"Loja aberta: {self.active_vendor.name}."
 
     def _build_initial_stock(self) -> list[dict]:
         by_id: dict[str, dict] = {}
@@ -41,6 +58,19 @@ class ShopSystem:
         for item in self.database.get_buyable_items("vendor_milo_root", player_level=99):
             item_id = item["id"]
             data = self.database.normalize_item(item_id)
+            by_id.setdefault(
+                item_id,
+                {
+                    "id": item_id,
+                    "price": int(data.get("buy_price", data.get("price", 1))),
+                    "required_level": int(data.get("required_level", 1)),
+                    "stock": self._stock_for_rarity(data.get("rarity", "common")),
+                    "seller": "vendedor geral",
+                },
+            )
+        for item_id, data in ITEMS.items():
+            if not data.get("buyable", True):
+                continue
             by_id.setdefault(
                 item_id,
                 {
@@ -72,12 +102,15 @@ class ShopSystem:
         limit: int | None = None,
     ) -> list[dict]:
         result = []
+        active_vendor = self.active_vendor
         compatible_sellers = {seller_key(seller)} if seller else DEFAULT_SELLERS
         for entry in self.stock:
             if entry.get("seller") and seller_key(entry["seller"]) not in compatible_sellers:
                 continue
             item_id = entry["id"]
             if item_id not in ITEMS:
+                continue
+            if active_vendor and not active_vendor.can_sell_item(item_id):
                 continue
             if not ITEMS[item_id].get("buyable", True) and entry.get("source") == "items.json":
                 continue
@@ -129,6 +162,9 @@ class ShopSystem:
             if player.level.level < entry.get("required_level", 1):
                 self.message = "Este item ainda esta bloqueado por level."
                 return False
+            if not self.active_vendor.can_sell_item(item_id):
+                self.message = "Este vendedor nao vende esse tipo de item."
+                return False
             if entry.get("stock", 0) < quantity:
                 self.message = "O estoque acabou."
                 return False
@@ -161,6 +197,9 @@ class ShopSystem:
         if not ITEMS[item_id].get("sellable", True):
             self.message = "Este item nao pode ser vendido."
             return False
+        if not self.active_vendor.can_buy_item(item_id):
+            self.message = "Este vendedor nao compra esse tipo de item."
+            return False
         if not inventory.has_item(item_id, quantity):
             self.message = "Voce nao possui quantidade suficiente."
             return False
@@ -183,6 +222,9 @@ class ShopSystem:
         if not ITEMS[slot.item_id].get("sellable", True):
             self.message = "Este item nao pode ser vendido."
             return False
+        if not self.active_vendor.can_buy_item(slot.item_id):
+            self.message = "Este vendedor nao compra esse tipo de item."
+            return False
         removed = player.inventory.remove_from_slot(slot_index, quantity)
         if not removed:
             self.message = "Nada para vender."
@@ -195,11 +237,13 @@ class ShopSystem:
         return True
 
     def to_dict(self) -> dict:
-        return {"stock": self.stock}
+        return {"stock": self.stock, "active_vendor_id": self.active_vendor.id}
 
     def load_dict(self, data: dict) -> None:
         if data.get("stock"):
             self.stock = data["stock"]
+        if data.get("active_vendor_id"):
+            self.set_active_vendor(data["active_vendor_id"])
 
 
 class ShopVendor:
@@ -209,7 +253,9 @@ class ShopVendor:
         self.name = self.data.get("name", "Milo Raizforte")
         self.title = self.data.get("title", "Mercador da Clareira")
         self.shop_id = self.data.get("shop_id", "forest_general_store")
-        self.categories_sold = set(self.data.get("categories_sold", []))
+        self.location = self.data.get("location", self.data.get("location_type", "Clareira"))
+        self.categories_sold = set(self.data.get("sells_categories", self.data.get("categories_sold", [])))
+        self.categories_bought = set(self.data.get("buys_categories", ["any"]))
 
     def get_available_items(self, player) -> list[dict]:
         return ITEM_DATABASE.get_buyable_items(self.id, player.level.level)
@@ -218,4 +264,14 @@ class ShopVendor:
         if item_id not in ITEMS:
             return False
         item_type = ITEMS[item_id].get("type")
-        return not self.categories_sold or item_type in self.categories_sold
+        category = ITEMS[item_id].get("category")
+        return not self.categories_sold or item_type in self.categories_sold or category in self.categories_sold
+
+    def can_buy_item(self, item_id: str) -> bool:
+        if item_id not in ITEMS:
+            return False
+        if "any" in self.categories_bought:
+            return True
+        item_type = ITEMS[item_id].get("type")
+        category = ITEMS[item_id].get("category")
+        return item_type in self.categories_bought or category in self.categories_bought

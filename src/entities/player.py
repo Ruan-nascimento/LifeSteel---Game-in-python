@@ -61,6 +61,7 @@ class Player(Entity):
         self.passive_bonuses: dict[str, int | float] = {}
         self.passive_bonus_sources: set[str] = set()
         self.upgrades_applied: set[str] = set()
+        self.growth_level_applied = 1
         self._zero_need_damage_timer = 0.0
         self.last_consumable_result: dict | None = None
         self._give_starting_items()
@@ -98,6 +99,8 @@ class Player(Entity):
 
         low_needs_modifier = 0.82 if self.hunger < 15 or self.thirst < 15 else 1.0
         speed = self.base_speed * weather.movement_modifier() * low_needs_modifier
+        if hasattr(world, "is_water_at") and world.is_water_at(self.center):
+            speed *= Settings.WATER_MOVE_SPEED_MULTIPLIER
         running = input_handler.sprinting() and self.energy > 3 and self.hunger >= 30 and self.thirst >= 30
         if running:
             speed *= Settings.PLAYER_RUN_MULTIPLIER
@@ -117,10 +120,10 @@ class Player(Entity):
         if dx == 0 and dy == 0:
             return
         self.pos.x += dx
-        if world.collides(self.collision_rect):
+        if world.collides(self.collision_rect, allow_water=True):
             self.pos.x -= dx
         self.pos.y += dy
-        if world.collides(self.collision_rect):
+        if world.collides(self.collision_rect, allow_water=True):
             self.pos.y -= dy
 
     def _update_survival(self, dt: float) -> None:
@@ -417,6 +420,7 @@ class Player(Entity):
             "passive_bonuses": self.passive_bonuses,
             "passive_bonus_sources": sorted(self.passive_bonus_sources),
             "upgrades_applied": sorted(self.upgrades_applied),
+            "growth_level_applied": self.growth_level_applied,
             "level": self.level.to_dict(),
             "skills": self.skills.to_dict(),
         }
@@ -448,5 +452,6 @@ class Player(Entity):
         player.passive_bonus_sources = set(data.get("passive_bonus_sources", []))
         player.upgrades_applied = set(data.get("upgrades_applied", []))
         player.level = LevelSystem.from_dict(data.get("level", {}))
+        player.growth_level_applied = int(data.get("growth_level_applied", player.level.level))
         player.skills = SkillTree.from_dict(data.get("skills", {}))
         return player

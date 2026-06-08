@@ -409,6 +409,102 @@
       "rewards": {"xp": 450, "coins": 0, "skill_xp": [{"skill": "combate", "xp": 150}, {"skill": "sobrevivencia", "xp": 100}], "items": []},
       "unique_rewards": [{"id": "dente_da_noite", "quantity": 1}],
       "next_quests": []
+    },
+    {
+      "id": "q_luma_collect_oranges",
+      "title": "Laranjas para Luma",
+      "level_required": 2,
+      "category": "village",
+      "location_required": "village_clearing",
+      "giver_id": "vendor_luma_fruit",
+      "requires_discovered_location": true,
+      "description": "Luma precisa de laranjas frescas para preparar sucos.",
+      "giver": "Luma Frutalia",
+      "auto_start": false,
+      "objectives": [
+        {"type": "collect", "target_id": "orange", "required": 5, "label": "Coletar laranjas"},
+        {"type": "talk", "target_id": "vendor_luma_fruit", "required": 1, "label": "Entregar para Luma"}
+      ],
+      "rewards": {"xp": 150, "coins": 120, "skill_xp": [{"skill": "agricultura", "xp": 40}, {"skill": "comunicacao", "xp": 25}], "items": [{"id": "tropical_juice", "quantity": 1}]},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_bronn_copper_delivery",
+      "title": "Cobre para Bronn",
+      "level_required": 3,
+      "category": "mining",
+      "location_required": "village_low_stone",
+      "giver_id": "vendor_bronn_ores",
+      "requires_discovered_location": true,
+      "description": "Bronn quer cobre suficiente para avaliar sua coragem nas rochas.",
+      "giver": "Bronn Pedrabruta",
+      "auto_start": false,
+      "objectives": [
+        {"type": "collect", "target_id": "copper_ore", "required": 4, "label": "Minerar cobre"},
+        {"type": "talk", "target_id": "vendor_bronn_ores", "required": 1, "label": "Falar com Bronn"}
+      ],
+      "rewards": {"xp": 210, "coins": 160, "skill_xp": [{"skill": "mineracao", "xp": 80}], "items": [{"id": "coal", "quantity": 3}]},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_nara_lake_catch",
+      "title": "Peixe de Agua Boa",
+      "level_required": 2,
+      "category": "fishing",
+      "location_required": "village_riverside",
+      "giver_id": "vendor_nara_fish",
+      "requires_discovered_location": true,
+      "description": "Nara quer confirmar que os lagos proximos ainda rendem peixe.",
+      "giver": "Nara Anzolino",
+      "auto_start": false,
+      "objectives": [
+        {"type": "fish", "target_id": "any", "required": 3, "label": "Pescar 3 vezes"},
+        {"type": "talk", "target_id": "vendor_nara_fish", "required": 1, "label": "Voltar para Nara"}
+      ],
+      "rewards": {"xp": 180, "coins": 130, "skill_xp": [{"skill": "pescar", "xp": 70}], "items": [{"id": "small_fish", "quantity": 2}]},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_silas_lost_spell",
+      "title": "Pagina Que Brilha",
+      "level_required": 3,
+      "category": "magic",
+      "location_required": "arcane_camp",
+      "giver_id": "vendor_silas_books",
+      "requires_discovered_location": true,
+      "description": "Silas procura um livro magico encontrado em cavernas.",
+      "giver": "Silas Tinta-Velha",
+      "auto_start": false,
+      "objectives": [
+        {"type": "collect", "target_id": "livro_feitico_luz_menor", "required": 1, "label": "Encontrar o feitico"},
+        {"type": "talk", "target_id": "vendor_silas_books", "required": 1, "label": "Mostrar para Silas"}
+      ],
+      "rewards": {"xp": 260, "coins": 220, "skill_xp": [{"skill": "magia", "xp": 90}], "items": [{"id": "small_mana_potion", "quantity": 2}]},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_garron_test_blade",
+      "title": "Teste de Lamina",
+      "level_required": 4,
+      "category": "combat",
+      "location_required": "village_low_stone",
+      "giver_id": "vendor_garron_blacksmith",
+      "requires_discovered_location": true,
+      "requires_skill_level": {"Combate": 2},
+      "description": "Garron quer ver se voce sabe usar uma arma sem quebrar tudo.",
+      "giver": "Garron Forjamao",
+      "auto_start": false,
+      "objectives": [
+        {"type": "defeat", "target_id": "any", "required": 2, "label": "Derrotar inimigos"},
+        {"type": "talk", "target_id": "vendor_garron_blacksmith", "required": 1, "label": "Relatar a Garron"}
+      ],
+      "rewards": {"xp": 280, "coins": 240, "skill_xp": [{"skill": "combate", "xp": 100}], "items": [{"id": "iron_ingot", "quantity": 1}]},
+      "unique_rewards": [],
+      "next_quests": []
     }
   ]
 }

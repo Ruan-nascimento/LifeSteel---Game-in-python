@@ -9,7 +9,7 @@ class CombatSystem:
     def __init__(self) -> None:
         self.message = "Combate pronto."
 
-    def player_attack(self, player, world, enemies, mouse_world_pos, particles, notifications, animals=None, drop_system=None, quest_system=None, is_night: bool = False) -> None:
+    def player_attack(self, player, world, enemies, mouse_world_pos, particles, notifications, animals=None, drop_system=None, quest_system=None, is_night: bool = False, durability_system=None) -> None:
         if player.attack_timer > 0:
             return
         item = player.equipped_item()
@@ -31,7 +31,7 @@ class CombatSystem:
 
         target_resource = world.resource_near_point(mouse_world_pos, item.range, player.center)
         if target_resource:
-            self._attack_resource(player, target_resource, item, world, particles, notifications, drop_system)
+            self._attack_resource(player, target_resource, item, world, particles, notifications, drop_system, durability_system)
             return
 
         hit_any = False
@@ -41,6 +41,8 @@ class CombatSystem:
             distance = enemy.center.distance_to(player.center)
             if distance <= item.range:
                 damage = player.combat_damage(item)
+                if durability_system:
+                    durability_system.apply_selected_use_damage(player, "magic" if item.mana_cost > 0 else "combat", "enemy", notifications, correct=True)
                 enemy.take_damage(damage)
                 particles.emit(enemy.center, color=(219, 68, 64), amount=10, speed=90, lifetime=0.42, radius=3)
                 notifications.push(f"Causou {damage} dano.")
@@ -73,6 +75,8 @@ class CombatSystem:
             distance = animal.center.distance_to(player.center)
             if distance <= item.range:
                 damage = player.combat_damage(item)
+                if durability_system:
+                    durability_system.apply_selected_use_damage(player, "combat", "animal", notifications, correct=True)
                 animal.take_damage(damage)
                 particles.emit(animal.center, color=(205, 116, 83), amount=8, speed=70, lifetime=0.34, radius=3)
                 hit_any = True
@@ -91,13 +95,17 @@ class CombatSystem:
             swing_pos = player.center + player.facing_vector * min(item.range, 48)
             particles.emit(swing_pos, color=(224, 221, 185), amount=5, speed=55, lifetime=0.22, radius=2)
 
-    def _attack_resource(self, player, resource, item, world, particles, notifications, drop_system=None) -> None:
+    def _attack_resource(self, player, resource, item, world, particles, notifications, drop_system=None, durability_system=None) -> None:
         if not resource.can_harvest_with(item):
+            if durability_system:
+                durability_system.apply_selected_use_damage(player, "resource", resource.kind, notifications, correct=False)
             required = resource.required_tool or "ferramenta certa"
             notifications.push(f"Requer {required}.")
             particles.emit(resource.center, color=(140, 140, 140), amount=4, speed=35, lifetime=0.25, radius=2)
             return
 
+        if durability_system:
+            durability_system.apply_selected_use_damage(player, "resource", resource.kind, notifications, correct=True)
         damage = player.tool_power(item, resource)
         drops = resource.harvest(damage)
         color = resource.particle_color

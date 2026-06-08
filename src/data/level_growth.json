@@ -1,0 +1,13 @@
+{
+  "growth_by_class": {
+    "warrior": {"health": 18, "mana": 4, "energy": 8, "hunger": 4, "thirst": 4},
+    "lumberjack": {"health": 16, "mana": 3, "energy": 12, "hunger": 6, "thirst": 5},
+    "mage": {"health": 10, "mana": 18, "energy": 6, "hunger": 3, "thirst": 4},
+    "farmer": {"health": 12, "mana": 6, "energy": 9, "hunger": 8, "thirst": 6},
+    "explorer": {"health": 13, "mana": 8, "energy": 14, "hunger": 5, "thirst": 8},
+    "diplomat": {"health": 11, "mana": 10, "energy": 8, "hunger": 5, "thirst": 5}
+  },
+  "heal_on_level_up_percent": 0.5,
+  "restore_energy_on_level_up_percent": 0.5,
+  "restore_mana_on_level_up_percent": 0.5
+}
