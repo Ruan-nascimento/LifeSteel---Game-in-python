@@ -32,6 +32,7 @@ class ShopSystem:
         self.stock = self._build_initial_stock()
         self.message = "Bem-vindo ao mercador da clareira."
         self.active_vendor = ShopVendor(self.database.get_vendor() or {})
+        self.last_transaction: dict | None = None
 
     def _build_initial_stock(self) -> list[dict]:
         by_id: dict[str, dict] = {}
@@ -117,6 +118,7 @@ class ShopSystem:
         ]
 
     def buy(self, player, item_id: str, seller: str | None = None, quantity: int = 1) -> bool:
+        self.last_transaction = None
         compatible_sellers = {seller_key(seller)} if seller else DEFAULT_SELLERS
         for entry in self.stock:
             if entry["id"] != item_id:
@@ -145,12 +147,14 @@ class ShopSystem:
             entry["stock"] -= quantity
             player.skills.add_xp("Comercio", 3)
             player.skills.add_xp("Comunicacao", 2)
+            self.last_transaction = {"type": "buy", "item_id": item_id, "quantity": quantity, "coins": price}
             self.message = f"Voce comprou {ITEMS[item_id]['name']} por {price} ZC."
             return True
         self.message = "Item nao encontrado."
         return False
 
     def sell_item(self, player, inventory, item_id: str, quantity: int = 1) -> bool:
+        self.last_transaction = None
         if item_id not in ITEMS:
             self.message = "Item nao encontrado."
             return False
@@ -166,10 +170,12 @@ class ShopSystem:
         price = self.economy.sell_price(item_id, player) * quantity
         player.coins += price
         player.skills.add_xp("Comercio", 4)
+        self.last_transaction = {"type": "sell", "item_id": item_id, "quantity": quantity, "coins": price}
         self.message = f"Voce vendeu {ITEMS[item_id]['name']} por {price} ZC."
         return True
 
     def sell_from_slot(self, player, slot_index: int, quantity: int = 1) -> bool:
+        self.last_transaction = None
         slot = player.inventory.slots[slot_index] if 0 <= slot_index < player.inventory.capacity else None
         if not slot:
             self.message = "Nada para vender."
@@ -184,6 +190,7 @@ class ShopSystem:
         price = self.economy.sell_price(removed.item_id, player) * removed.quantity
         player.coins += price
         player.skills.add_xp("Comercio", 4)
+        self.last_transaction = {"type": "sell", "item_id": removed.item_id, "quantity": removed.quantity, "coins": price}
         self.message = f"Voce vendeu {ITEMS[removed.item_id]['name']} por {price} ZC."
         return True
 

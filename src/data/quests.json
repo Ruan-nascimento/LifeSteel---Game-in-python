@@ -1,0 +1,414 @@
+{
+  "quest_system": {
+    "version": "1.0.0",
+    "max_level_scope": 5,
+    "description": "Quests iniciais por nivel para LifeSteel."
+  },
+  "quests": [
+    {
+      "id": "q_l1_first_steps",
+      "title": "Primeiros Passos",
+      "level_required": 1,
+      "category": "survival",
+      "description": "Aprenda o basico para sobreviver na floresta.",
+      "giver": "Milo Raizforte",
+      "auto_start": true,
+      "objectives": [
+        {"type": "collect", "target_id": "wood", "required": 5, "label": "Coletar madeira"},
+        {"type": "collect", "target_id": "stone", "required": 3, "label": "Coletar pedra"}
+      ],
+      "rewards": {
+        "xp": 35,
+        "coins": 50,
+        "skill_xp": [{"skill": "sobrevivencia", "xp": 15}],
+        "items": [{"id": "apple", "quantity": 2}]
+      },
+      "unique_rewards": [],
+      "next_quests": ["q_l1_build_campfire"]
+    },
+    {
+      "id": "q_l1_build_campfire",
+      "title": "Fogueira da Sobrevivencia",
+      "level_required": 1,
+      "category": "cooking",
+      "description": "Construa uma fogueira e cozinhe o primeiro alimento.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "build", "target_id": "campfire", "required": 1, "label": "Construir uma fogueira"},
+        {"type": "cook", "target_id": "any", "required": 1, "label": "Assar carne ou peixe"}
+      ],
+      "rewards": {
+        "xp": 50,
+        "coins": 80,
+        "skill_xp": [{"skill": "cozinhar", "xp": 25}],
+        "items": []
+      },
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_l1_water_before_courage",
+      "title": "Agua Antes da Coragem",
+      "level_required": 1,
+      "category": "survival",
+      "description": "Aprenda a usar agua antes que a sede vire problema.",
+      "giver": "Milo Raizforte",
+      "auto_start": true,
+      "objectives": [
+        {"type": "collect", "target_id": "water_cup", "required": 1, "label": "Encher copo ou cantil"},
+        {"type": "consume", "target_id": "water_cup", "required": 1, "label": "Beber agua"}
+      ],
+      "rewards": {
+        "xp": 40,
+        "coins": 0,
+        "skill_xp": [{"skill": "sobrevivencia", "xp": 15}],
+        "items": [{"id": "empty_cup", "quantity": 1}]
+      },
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_l1_vendor_clearing",
+      "title": "O Mercador da Clareira",
+      "level_required": 1,
+      "category": "social",
+      "description": "Encontre Milo e aprenda a negociar.",
+      "giver": "Milo Raizforte",
+      "auto_start": true,
+      "objectives": [
+        {"type": "talk", "target_id": "vendor_milo_root", "required": 1, "label": "Encontrar Milo"},
+        {"type": "open_shop", "target_id": "vendor_milo_root", "required": 1, "label": "Abrir a loja"},
+        {"type": "trade", "target_id": "any", "required": 1, "label": "Comprar ou vender um item"}
+      ],
+      "rewards": {
+        "xp": 45,
+        "coins": 75,
+        "skill_xp": [{"skill": "comunicacao", "xp": 20}],
+        "items": []
+      },
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_l1_first_defense",
+      "title": "Primeira Defesa",
+      "level_required": 1,
+      "category": "combat",
+      "description": "Derrote uma criatura fraca e prove que consegue se defender.",
+      "giver": "Milo Raizforte",
+      "auto_start": true,
+      "objectives": [
+        {"type": "defeat", "target_id": "any", "required": 1, "label": "Derrotar um inimigo"}
+      ],
+      "rewards": {
+        "xp": 60,
+        "coins": 0,
+        "skill_xp": [{"skill": "combate", "xp": 20}],
+        "items": []
+      },
+      "unique_rewards": [{"id": "broche_da_clareira", "quantity": 1}],
+      "next_quests": []
+    },
+    {
+      "id": "q_l2_organizing_life",
+      "title": "Organizando a Vida",
+      "level_required": 2,
+      "category": "crafting",
+      "description": "Crie uma base de trabalho melhor para sobreviver.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "collect", "target_id": "workbench", "required": 1, "label": "Obter uma bancada"},
+        {"type": "craft", "target_id": "stone_axe", "required": 1, "label": "Criar uma ferramenta de pedra"}
+      ],
+      "rewards": {"xp": 80, "coins": 0, "skill_xp": [{"skill": "construcao", "xp": 30}], "items": []},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_l2_first_fishing",
+      "title": "Pescaria Inicial",
+      "level_required": 2,
+      "category": "fishing",
+      "description": "Prepare uma vara e pesque seus primeiros peixes.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "collect", "target_id": "simple_fishing_rod", "required": 1, "label": "Obter vara de pesca"},
+        {"type": "fish", "target_id": "any", "required": 2, "label": "Pescar peixes"}
+      ],
+      "rewards": {"xp": 90, "coins": 0, "skill_xp": [{"skill": "pescar", "xp": 30}], "items": [{"id": "fiber", "quantity": 3}]},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_l2_more_space",
+      "title": "Mais Espaco, Menos Sofrimento",
+      "level_required": 2,
+      "category": "upgrade",
+      "description": "Consiga uma mochila reforcada para carregar melhor seus recursos.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "collect", "target_id": "reinforced_backpack", "required": 1, "label": "Obter mochila reforcada"}
+      ],
+      "rewards": {"xp": 100, "coins": 100, "skill_xp": [{"skill": "comercio", "xp": 20}], "items": []},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_l2_night_protection",
+      "title": "Protecao Contra a Noite",
+      "level_required": 2,
+      "category": "survival",
+      "description": "Use luz para atravessar a noite sem se perder.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "build", "target_id": "torch", "required": 2, "label": "Colocar tochas"},
+        {"type": "survive_night", "target_id": "night", "required": 1, "label": "Sobreviver ate amanhecer"}
+      ],
+      "rewards": {"xp": 120, "coins": 0, "skill_xp": [{"skill": "sobrevivencia", "xp": 30}], "items": []},
+      "unique_rewards": [{"id": "anel_da_primeira_noite", "quantity": 1}],
+      "next_quests": []
+    },
+    {
+      "id": "q_l3_copper_glow",
+      "title": "O Brilho do Cobre",
+      "level_required": 3,
+      "category": "mining",
+      "description": "Comece a buscar cobre e materiais melhores.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "collect", "target_id": "copper_ore", "required": 1, "label": "Minerar cobre"},
+        {"type": "collect", "target_id": "copper_ingot", "required": 2, "label": "Obter barras de cobre"}
+      ],
+      "rewards": {"xp": 150, "coins": 0, "skill_xp": [{"skill": "mineracao", "xp": 50}], "items": []},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_l3_better_tool",
+      "title": "Ferramenta Melhorada",
+      "level_required": 3,
+      "category": "crafting",
+      "description": "Crie ou compre uma ferramenta de cobre.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "collect", "target_id": "copper_axe", "required": 1, "label": "Obter ferramenta de cobre"}
+      ],
+      "rewards": {"xp": 160, "coins": 120, "skill_xp": [{"skill": "construcao", "xp": 40}], "items": []},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_l3_controlled_hunt",
+      "title": "Caca Controlada",
+      "level_required": 3,
+      "category": "combat",
+      "description": "Derrote monstros sem cair em combate.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "defeat", "target_id": "any", "required": 3, "label": "Derrotar monstros"}
+      ],
+      "rewards": {"xp": 180, "coins": 0, "skill_xp": [{"skill": "combate", "xp": 60}], "items": []},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_l3_useful_reading",
+      "title": "Leitura Util",
+      "level_required": 3,
+      "category": "books",
+      "description": "Comece a estudar livros para destravar novas possibilidades.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "collect", "target_id": "book", "required": 1, "label": "Obter um livro"},
+        {"type": "read_book", "target_id": "any", "required": 1, "label": "Iniciar leitura"}
+      ],
+      "rewards": {"xp": 130, "coins": 0, "skill_xp": [{"skill": "comunicacao", "xp": 40}], "items": []},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_l3_real_cooking",
+      "title": "Cozinha de Verdade",
+      "level_required": 3,
+      "category": "cooking",
+      "description": "Prepare uma receita melhor que comida assada simples.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "cook", "target_id": "meal", "required": 1, "label": "Preparar uma receita cozida"}
+      ],
+      "rewards": {"xp": 170, "coins": 0, "skill_xp": [{"skill": "cozinhar", "xp": 60}], "items": []},
+      "unique_rewards": [{"id": "colher_do_primeiro_cozinheiro", "quantity": 1}],
+      "next_quests": []
+    },
+    {
+      "id": "q_l4_talk_is_gold",
+      "title": "Conversa Vale Ouro",
+      "level_required": 4,
+      "category": "trade",
+      "description": "Venda bastante e use comercio a seu favor.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "sell", "target_id": "any", "required": 5, "label": "Vender 5 itens"},
+        {"type": "earn_coins", "target_id": "sell", "required": 200, "label": "Ganhar 200 ZC em vendas"}
+      ],
+      "rewards": {"xp": 200, "coins": 0, "skill_xp": [{"skill": "comercio", "xp": 70}, {"skill": "comunicacao", "xp": 50}], "items": []},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_l4_forest_never_sleeps",
+      "title": "A Floresta Nao Dorme",
+      "level_required": 4,
+      "category": "exploration",
+      "description": "Explore a noite usando fontes de luz.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "explore", "target_id": "night", "required": 1, "label": "Explorar a noite"},
+        {"type": "build", "target_id": "torch", "required": 1, "label": "Colocar luz fora do acampamento"}
+      ],
+      "rewards": {"xp": 230, "coins": 0, "skill_xp": [{"skill": "exploracao", "xp": 70}], "items": []},
+      "unique_rewards": [{"id": "lanterna_quebrada_antiga", "quantity": 1}],
+      "next_quests": []
+    },
+    {
+      "id": "q_l4_small_influence",
+      "title": "Pequena Influencia",
+      "level_required": 4,
+      "category": "social",
+      "description": "Aprenda que influencia tambem move o mundo.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "talk", "target_id": "npc", "required": 2, "label": "Conversar com NPCs"},
+        {"type": "trade", "target_id": "any", "required": 1, "label": "Completar negociacao"}
+      ],
+      "rewards": {"xp": 220, "coins": 0, "skill_xp": [{"skill": "politica", "xp": 80}], "items": []},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_l4_stone_mud_fear",
+      "title": "Pedra, Lama e Medo",
+      "level_required": 4,
+      "category": "mining",
+      "description": "Volte vivo com pedra e minerios suficientes.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "collect", "target_id": "stone", "required": 10, "label": "Minerar pedras"},
+        {"type": "collect", "target_id": "simple_ore", "required": 3, "label": "Minerar minerios"},
+        {"type": "return", "target_id": "camp", "required": 1, "label": "Voltar ao acampamento"}
+      ],
+      "rewards": {"xp": 240, "coins": 0, "skill_xp": [{"skill": "mineracao", "xp": 80}], "items": []},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_l5_first_iron",
+      "title": "O Primeiro Ferro",
+      "level_required": 5,
+      "category": "mining",
+      "description": "Comece sua jornada com ferro.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "collect", "target_id": "iron_ore", "required": 1, "label": "Encontrar ferro"},
+        {"type": "collect", "target_id": "iron_ingot", "required": 1, "label": "Obter barra de ferro"}
+      ],
+      "rewards": {"xp": 300, "coins": 0, "skill_xp": [{"skill": "mineracao", "xp": 100}], "items": []},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_l5_respect_weapon",
+      "title": "Arma de Respeito",
+      "level_required": 5,
+      "category": "combat",
+      "description": "Consiga uma arma forte o bastante para novas ameacas.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "collect", "target_id": "iron_sword", "required": 1, "label": "Obter arma de nivel 5"}
+      ],
+      "rewards": {"xp": 320, "coins": 0, "skill_xp": [{"skill": "combate", "xp": 100}], "items": []},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_l5_magic_for_stubborn",
+      "title": "Magia para Quem Insiste",
+      "level_required": 5,
+      "category": "magic",
+      "description": "Estude magia mesmo que sua classe nao tenha nascido para isso.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "read_book", "target_id": "magic", "required": 1, "label": "Ler livro de magia"},
+        {"type": "skill_xp", "target_id": "Magia", "required": 1, "label": "Ganhar XP em Magia"}
+      ],
+      "rewards": {"xp": 300, "coins": 0, "skill_xp": [{"skill": "magia", "xp": 120}], "items": []},
+      "unique_rewards": [{"id": "fragmento_arcano_instavel", "quantity": 1}],
+      "next_quests": []
+    },
+    {
+      "id": "q_l5_house_walls",
+      "title": "A Casa Merece Paredes",
+      "level_required": 5,
+      "category": "building",
+      "description": "Transforme o acampamento em um lugar menos improvisado.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "build", "target_id": "any", "required": 3, "label": "Construir estruturas permanentes"},
+        {"type": "build", "target_id": "small_chest", "required": 1, "label": "Colocar um bau"}
+      ],
+      "rewards": {"xp": 280, "coins": 0, "skill_xp": [{"skill": "construcao", "xp": 100}], "items": []},
+      "unique_rewards": [],
+      "next_quests": []
+    },
+    {
+      "id": "q_l5_milo_favor",
+      "title": "O Favor de Milo",
+      "level_required": 5,
+      "category": "social",
+      "description": "Mostre a Milo que voce ja fez muito pela clareira.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "claim_quest", "target_id": "any", "required": 5, "label": "Completar 5 quests"},
+        {"type": "talk", "target_id": "vendor_milo_root", "required": 1, "label": "Falar com Milo"}
+      ],
+      "rewards": {"xp": 350, "coins": 300, "skill_xp": [], "items": []},
+      "unique_rewards": [{"id": "selo_de_milo", "quantity": 1}],
+      "next_quests": []
+    },
+    {
+      "id": "q_l5_darkness_monster",
+      "title": "O Monstro da Escuridao",
+      "level_required": 5,
+      "category": "combat",
+      "description": "Enfrente uma criatura forte durante a noite com uma luz por perto.",
+      "giver": "Milo Raizforte",
+      "auto_start": false,
+      "objectives": [
+        {"type": "defeat", "target_id": "night_enemy", "required": 1, "label": "Derrotar inimigo noturno"},
+        {"type": "use_light", "target_id": "any", "required": 1, "label": "Usar fonte de luz proxima"}
+      ],
+      "rewards": {"xp": 450, "coins": 0, "skill_xp": [{"skill": "combate", "xp": 150}, {"skill": "sobrevivencia", "xp": 100}], "items": []},
+      "unique_rewards": [{"id": "dente_da_noite", "quantity": 1}],
+      "next_quests": []
+    }
+  ]
+}

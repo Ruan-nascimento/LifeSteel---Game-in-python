@@ -9,7 +9,7 @@ class CombatSystem:
     def __init__(self) -> None:
         self.message = "Combate pronto."
 
-    def player_attack(self, player, world, enemies, mouse_world_pos, particles, notifications, animals=None, drop_system=None) -> None:
+    def player_attack(self, player, world, enemies, mouse_world_pos, particles, notifications, animals=None, drop_system=None, quest_system=None, is_night: bool = False) -> None:
         if player.attack_timer > 0:
             return
         item = player.equipped_item()
@@ -45,6 +45,9 @@ class CombatSystem:
                 particles.emit(enemy.center, color=(219, 68, 64), amount=10, speed=90, lifetime=0.42, radius=3)
                 notifications.push(f"Causou {damage} dano.")
                 player.skills.add_xp("Combate", 6)
+                if item.mana_cost > 0:
+                    player.skills.add_xp("Magia", 4)
+                    self._push_quest_messages(quest_system, notifications, "skill_xp", "Magia", 4, {"skill": "Magia", "xp": 4})
                 hit_any = True
                 if not enemy.alive:
                     xp = enemy.reward_xp() + (4 if player.class_id == "warrior" else 0)
@@ -55,6 +58,15 @@ class CombatSystem:
                     for item_id, amount in enemy.drop_items().items():
                         world.spawn_ground_drop(enemy.center, item_id, amount)
                     notifications.push(f"{enemy.name} derrotado: +{xp} XP +{coins} ZC.")
+                    target_id = "night_enemy" if is_night else enemy.kind
+                    self._push_quest_messages(
+                        quest_system,
+                        notifications,
+                        "defeat",
+                        target_id,
+                        1,
+                        {"enemy_kind": enemy.kind, "enemy_level": enemy.level, "is_night": is_night},
+                    )
         for animal in animals or []:
             if not animal.alive:
                 continue
@@ -104,6 +116,12 @@ class CombatSystem:
             player.level.add_xp(resource.xp_reward)
             world.remove_resource(resource)
         self.message = f"Usou {item.name}."
+
+    def _push_quest_messages(self, quest_system, notifications, event_type: str, target_id: str, amount: int = 1, metadata: dict | None = None) -> None:
+        if not quest_system:
+            return
+        for message in quest_system.update_objective(event_type, target_id, amount, metadata or {}):
+            notifications.push(message)
 
     def enemy_attack_player(self, enemy, player, particles, notifications) -> None:
         raw_damage = enemy.damage

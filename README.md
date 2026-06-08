@@ -20,6 +20,7 @@ O projeto usa `pygame-ce>=2.5,<3`. No PyPI, a linha 2.5.x e a linha estavel atua
 - `E`: interagir com NPC, loja ou recurso proximo
 - `I`: inventario
 - `C`: status/personagem
+- `J`: missoes
 - `M`: mapa expandido
 - `Q`: consumir 1 unidade do item consumivel equipado
 - `F`: pegar item do chao
@@ -28,6 +29,7 @@ O projeto usa `pygame-ce>=2.5,<3`. No PyPI, a linha 2.5.x e a linha estavel atua
 - `Esc`: pausa/configuracoes
 - `1` a `5`: selecionar hotbar
 - `Tab`: alternar abas abertas
+- `F3`: overlay de debug/performance
 - `F5`: salvar
 - `F9`: carregar
 
@@ -37,6 +39,9 @@ O projeto usa `pygame-ce>=2.5,<3`. No PyPI, a linha 2.5.x e a linha estavel atua
 - Seis classes iniciais com arma, vantagens, desvantagens e atributos.
 - Mundo top-down de floresta com camera seguindo o jogador.
 - HUD com HP, XP, fome, sede, energia, mana, moedas, relogio, clima, hotbar e minimapa.
+- Aba de missoes em `J`, com lista de quests liberadas, ativas, completas e recompensas para resgatar.
+- Missões iniciais dos niveis 1 a 5 carregadas de `src/data/quests.json`, com progresso salvo junto do save.
+- Recompensas de quests sao resgatadas manualmente e incluem itens unicos especiais.
 - Inventario com slots, hotbar, descricao, usar, equipar, dropar e drag-and-drop.
 - Mochila equipavel com inventario lateral; se for dropada, o conteudo continua dentro dela.
 - Sistema modular de alimentos, bebidas e pocoes carregado de `src/data/foods.json`.
@@ -65,7 +70,11 @@ O projeto usa `pygame-ce>=2.5,<3`. No PyPI, a linha 2.5.x e a linha estavel atua
 - Receitas craftaveis do JSON verificam estacao, habilidade, ingredientes, espaco no inventario e dao XP na habilidade relacionada.
 - Drops de alimentos podem ser rolados por fonte usando raridade, chance e quantidade do JSON.
 - Tochas iluminam a noite e apagam durante chuva/tempestade.
+- Ciclo de dia/noite com fases `day`, `sunset`, `night` e `dawn`.
+- Sistema de iluminacao por camada preta com recortes transparentes para jogador, tochas, fogueira e fogao, sem halos brancos.
 - Mapa/minimapa com exploracao revelada.
+- Otimizacoes de render com culling de entidades fora da tela, limite de particulas e cache de mascaras de luz.
+- Overlay `F3` com FPS, tempo de update/render, entidades, particulas e luzes processadas.
 - Save/load em JSON em `saves/save_01.json`.
 - Assets placeholder gerados por codigo e pastas de assets organizadas para substituicao futura.
 

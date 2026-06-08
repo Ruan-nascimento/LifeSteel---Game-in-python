@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from time import perf_counter
 
 import pygame
 
@@ -28,6 +29,7 @@ from src.systems.crafting_system import CraftingSystem
 from src.systems.drop_system import DropSystem
 from src.systems.economy_system import EconomySystem
 from src.systems.inventory_system import Inventory, InventorySlot
+from src.systems.lighting_system import LightingSystem
 from src.systems.map_exploration_system import MapExplorationSystem
 from src.systems.particle_system import ParticleManager
 from src.systems.quest_system import QuestSystem
@@ -43,6 +45,7 @@ from src.ui.inventory_ui import InventoryUI
 from src.ui.main_menu import MainMenu
 from src.ui.minimap_ui import MinimapUI
 from src.ui.notification_ui import NotificationUI
+from src.ui.quest_ui import QuestUI
 from src.ui.settings_ui import SettingsMenu
 from src.ui.shop_ui import ShopUI
 from src.ui.widgets import Button, draw_panel, draw_text, draw_wrapped
@@ -71,6 +74,7 @@ class Game:
         self.shop_ui = ShopUI(self.assets)
         self.character_ui = CharacterUI()
         self.dialogue_ui = DialogueUI()
+        self.quest_ui = QuestUI()
         self.notifications = NotificationUI()
         self.expanded_minimap = MinimapUI()
 
@@ -90,6 +94,7 @@ class Game:
         self.drop_system = DropSystem(self._rng)
         self.time_system = TimeSystem()
         self.weather_system = WeatherSystem()
+        self.lighting_system = LightingSystem(self.screen.get_size())
         self.particles = ParticleManager()
         self.exploration: MapExplorationSystem | None = None
         self.crafting_system = CraftingSystem()
@@ -109,6 +114,15 @@ class Game:
         self.craft_search = ""
         self.active_structure = None
         self.death_message_timer = 0.0
+        self.show_performance_debug = False
+        self.performance_stats = {
+            "update_ms": 0.0,
+            "render_ms": 0.0,
+            "rendered_entities": 0,
+            "updated_entities": 0,
+            "drawn_particles": 0,
+            "processed_lights": 0,
+        }
 
     def run(self) -> None:
         while self.running:
@@ -129,6 +143,7 @@ class Game:
                 self.screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
                 if self.camera:
                     self.camera.resize((width, height))
+                self.lighting_system.resize((width, height))
                 continue
 
             if self.state == "main_menu":
@@ -176,6 +191,9 @@ class Game:
         elif self.active_panel == "shop":
             action = self.shop_ui.handle_event(event)
             self._handle_shop_action(action)
+        elif self.active_panel == "quests":
+            action = self.quest_ui.handle_event(event, self.quest_system)
+            self._handle_quest_action(action)
         elif self.active_panel == "character":
             self.character_ui.handle_event(event)
         elif self.active_panel == "dialogue":
@@ -212,6 +230,8 @@ class Game:
                     self.notifications,
                     self.animals,
                     self.drop_system,
+                    self.quest_system,
+                    self.time_system.is_night(),
                 )
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3 and self.active_panel is None:
             mouse_world = self.camera.screen_to_world(event.pos)
@@ -235,6 +255,9 @@ class Game:
         if key == pygame.K_F9:
             self.load_game()
             return
+        if key == pygame.K_F3:
+            self.show_performance_debug = not self.show_performance_debug
+            return
 
         if pygame.K_1 <= key <= pygame.K_5:
             self.player.inventory.selected_slot = key - pygame.K_1
@@ -249,6 +272,8 @@ class Game:
             self._toggle_panel("building")
         elif key == pygame.K_k:
             self._toggle_panel("skills")
+        elif key == pygame.K_j:
+            self._toggle_panel("quests")
         elif key == pygame.K_TAB:
             self._cycle_panel()
         elif key == pygame.K_q:
@@ -265,9 +290,36 @@ class Game:
             self.active_panel = None
 
     def _cycle_panel(self) -> None:
-        order = [None, "inventory", "character", "skills", "map"]
+        order = [None, "inventory", "character", "skills", "quests", "map"]
         current_index = order.index(self.active_panel) if self.active_panel in order else 0
         self.active_panel = order[(current_index + 1) % len(order)]
+
+    def _handle_quest_action(self, action) -> None:
+        if not action or not self.player:
+            return
+        if action == "close_quests":
+            self.active_panel = None
+            return
+        if isinstance(action, tuple) and action[0] == "accept_quest":
+            ok, message = self.quest_system.accept_quest(action[1])
+            self.notifications.push(message)
+            return
+        if isinstance(action, tuple) and action[0] == "claim_quest":
+            ok, messages = self.quest_system.claim_reward(self.player, action[1])
+            for message in messages:
+                self.notifications.push(message)
+
+    def _quest_event(self, event_type: str, target_id: str | None = None, amount: int = 1, metadata: dict | None = None) -> None:
+        if not self.quest_system:
+            return
+        for message in self.quest_system.update_objective(event_type, target_id, amount, metadata or {}):
+            self.notifications.push(message)
+
+    def _drain_quest_messages(self) -> None:
+        if not self.quest_system:
+            return
+        for message in self.quest_system.drain_messages():
+            self.notifications.push(message)
 
     def _use_equipped_consumable(self) -> None:
         if not self.player:
@@ -296,10 +348,14 @@ class Game:
             if slot and slot.item.is_consumable():
                 self._consume_inventory_slot(source, index)
             elif inventory and self.player.use_inventory_slot(inventory, index):
+                used_item_id = slot.item_id if slot else None
+                used_item_type = slot.item.data.get("type") if slot else None
                 result = self.player.last_consumable_result or {}
                 self.notifications.push(result.get("message", "Item usado."))
                 for reward in result.get("rewards", []):
                     self.notifications.push(reward)
+                if used_item_id and used_item_type == "book":
+                    self._quest_event("read_book", used_item_id, 1, {"category": ITEMS.get(used_item_id, {}).get("category", "")})
         elif kind == "equip_slot":
             _, source, index = action
             if source != "main":
@@ -342,6 +398,7 @@ class Game:
         if not slot:
             self.notifications.push("Nenhum item consumivel equipado.")
             return False
+        consumed_item_id = slot.item_id
         result = self.consumable_system.consume(self.player, inventory, slot.item_id, index)
         self.notifications.push(result["message"])
         if not result["success"]:
@@ -352,6 +409,7 @@ class Game:
         if self.world:
             self.particles.emit(self.player.center, color=color, amount=9, speed=55, lifetime=0.45, radius=3)
         self.player.skills.add_xp("Sobrevivencia", 2)
+        self._quest_event("consume", consumed_item_id, 1)
         return True
 
     def _inventory_for_source(self, source: str):
@@ -481,11 +539,20 @@ class Game:
             return
         kind, value = action
         if kind == "buy":
-            self.shop_system.buy(self.player, value)
+            success = self.shop_system.buy(self.player, value)
             self.notifications.push(self.shop_system.message)
+            if success and self.shop_system.last_transaction:
+                tx = self.shop_system.last_transaction
+                self._quest_event("buy", tx["item_id"], int(tx.get("quantity", 1)), {"coins_spent": int(tx.get("coins", 0))})
         elif kind == "sell":
-            self.shop_system.sell_from_slot(self.player, value)
+            success = self.shop_system.sell_from_slot(self.player, value)
             self.notifications.push(self.shop_system.message)
+            if success and self.shop_system.last_transaction:
+                tx = self.shop_system.last_transaction
+                quantity = int(tx.get("quantity", 1))
+                coins = int(tx.get("coins", 0))
+                self._quest_event("sell", tx["item_id"], quantity, {"coins_earned": coins})
+                self._quest_event("earn_coins", "sell", coins, {"coins_earned": coins})
 
     def _handle_pause_event(self, event) -> None:
         if event.type not in {pygame.MOUSEBUTTONDOWN, pygame.MOUSEMOTION}:
@@ -524,8 +591,9 @@ class Game:
             world_pos = self.camera.screen_to_world(event.pos)
             building_id = self.building_system.selected_building
             if self.building_system.build(self.player, self.world, building_id, world_pos):
-                self.quest_system.register_build(building_id)
-                self.quest_system.update_completion(self.player)
+                self._quest_event("build", building_id, 1)
+                if building_id in {"torch", "campfire", "stone_stove"}:
+                    self._quest_event("use_light", building_id, 1)
                 self.notifications.push(self.building_system.message)
                 self.particles.emit(world_pos, color=COLORS["accent"], amount=12, speed=70, lifetime=0.55, radius=3)
             else:
@@ -554,8 +622,12 @@ class Game:
                 elif isinstance(action, tuple) and action[0] == "select_recipe":
                     self.selected_recipe_id = action[1]
                 elif isinstance(action, tuple) and action[0] == "craft":
-                    self.crafting_system.craft(self.player, action[1], station_id=self._active_station_id())
+                    success = self.crafting_system.craft(self.player, action[1], station_id=self._active_station_id())
                     self.notifications.push(self.crafting_system.message)
+                    if success:
+                        recipe = self.crafting_system.recipes.get(action[1], {})
+                        output_id, amount = recipe.get("output", (action[1], 1))
+                        self._quest_event("craft", output_id, int(amount))
 
     def _handle_cooking_event(self, event) -> None:
         if not self.player:
@@ -570,8 +642,12 @@ class Game:
                 elif isinstance(action, tuple) and action[0] == "cook":
                     self._cook_item(action[1])
                 elif isinstance(action, tuple) and action[0] == "craft_food":
-                    self.crafting_system.craft(self.player, action[1], station_id=self._active_station_id())
+                    success = self.crafting_system.craft(self.player, action[1], station_id=self._active_station_id())
                     self.notifications.push(self.crafting_system.message)
+                    if success:
+                        recipe = self.crafting_system.recipes.get(action[1], {})
+                        output_id, amount = recipe.get("output", (action[1], 1))
+                        self._quest_event("craft", output_id, int(amount))
                     if self.crafting_system.message.startswith("Criou"):
                         self.particles.emit(self.player.center, color=COLORS["accent_2"], amount=10, speed=60, lifetime=0.45, radius=3)
 
@@ -640,11 +716,12 @@ class Game:
         self.drop_system = DropSystem(self._rng)
         self.time_system = TimeSystem()
         self.weather_system = WeatherSystem()
+        self.lighting_system = LightingSystem(self.screen.get_size())
         self.particles = ParticleManager()
         self.exploration = MapExplorationSystem(self.world)
         self.crafting_system = CraftingSystem()
         self.building_system = BuildingSystem()
-        self.quest_system = QuestSystem()
+        self.quest_system = QuestSystem(player=self.player)
         self.active_panel = None
         self.state = "playing"
         self.notifications.push("Voce acordou perdido na floresta.")
@@ -694,6 +771,7 @@ class Game:
         return animals
 
     def _update(self, dt: float) -> None:
+        update_start = perf_counter()
         self.input.refresh()
         self.death_message_timer = max(0.0, self.death_message_timer - dt)
         if self.state == "main_menu":
@@ -701,12 +779,14 @@ class Game:
         elif self.state == "playing":
             self._update_playing(dt)
         self.notifications.update(dt)
+        self.performance_stats["update_ms"] = (perf_counter() - update_start) * 1000
 
     def _update_playing(self, dt: float) -> None:
         if not all([self.player, self.world, self.camera, self.exploration]):
             return
-        ui_open = self.active_panel in {"inventory", "shop", "character", "skills", "map", "building", "crafting", "cooking", "chest", "dialogue"}
+        ui_open = self.active_panel in {"inventory", "shop", "character", "skills", "map", "building", "crafting", "cooking", "chest", "dialogue", "quests"}
         paused = self.active_panel == "pause"
+        updated_entities = 0
         
         if not paused:
             if not ui_open:
@@ -714,33 +794,56 @@ class Game:
             self.world.update(dt)
             for npc in self.npcs:
                 npc.update(dt)
+                updated_entities += 1
             for animal in self.animals:
                 animal.update(dt, self.world)
+                updated_entities += 1
             for enemy in self.enemies:
                 enemy.update(dt, self.player, self.world)
+                updated_entities += 1
                 attack_range = enemy.attack_range if enemy.ranged else 34
                 if enemy.alive and enemy.center.distance_to(self.player.center) <= attack_range and enemy.attack_cooldown <= 0:
                     self.combat_system.enemy_attack_player(enemy, self.player, self.particles, self.notifications)
                     enemy.attack_cooldown = 1.8 if enemy.ranged else 1.2
+            was_night = self.time_system.is_night()
             new_day = self.time_system.update(dt)
             self.weather_system.update(dt, new_day)
             for result in self.cooking_system.update(dt, self.player):
                 self.notifications.push(result["message"])
+                if result.get("success") and result.get("output_id"):
+                    self._quest_event("cook", result["output_id"], 1)
             if new_day:
                 reading = ReadingSystem().read_day_progress(self.player)
                 if reading.get("success"):
                     self.notifications.push(reading["message"])
                     for reward in reading.get("rewards", []):
                         self.notifications.push(reward)
+                    if reading.get("book_id"):
+                        self._quest_event("read_book", reading["book_id"], 1, {"skill": reading.get("target_skill", "")})
+                    if int(reading.get("skill_xp", 0) or 0) > 0:
+                        self._quest_event(
+                            "skill_xp",
+                            reading.get("target_skill", ""),
+                            int(reading.get("skill_xp", 0) or 0),
+                            {"skill": reading.get("target_skill", ""), "xp": int(reading.get("skill_xp", 0) or 0)},
+                        )
+            if was_night and not self.time_system.is_night():
+                self._quest_event("survive_night", "night", 1)
             reveal_radius = 170 + self.player.skills.exploration_radius_bonus()
             if self.player.class_id == "explorer":
                 reveal_radius += 48
             self.exploration.reveal_around(self.player.center, reveal_radius)
-            self.quest_system.update_completion(self.player)
+            if self.time_system.is_night():
+                self._quest_event("explore", "night", 1, {"is_night": True})
+            if self.player.center.distance_to(self.world.spawn_pos) <= 130:
+                self._quest_event("return", "camp", 1)
+            self.quest_system.update(dt, self.player)
+            self._drain_quest_messages()
             if not self.player.alive:
                 self._handle_player_death()
         self.particles.update(dt)
         self.camera.update(self.player.center)
+        self.performance_stats["updated_entities"] = updated_entities
 
     def _handle_player_death(self) -> None:
         if not self.player or not self.world:
@@ -756,6 +859,7 @@ class Game:
         self.notifications.push("Voce morreu.")
 
     def _draw(self) -> None:
+        render_start = perf_counter()
         if self.state == "main_menu":
             self.main_menu.draw(self.screen)
         elif self.state == "settings":
@@ -765,23 +869,37 @@ class Game:
         elif self.state == "playing":
             self._draw_playing()
         pygame.display.flip()
+        self.performance_stats["render_ms"] = (perf_counter() - render_start) * 1000
 
     def _draw_playing(self) -> None:
         if not all([self.player, self.world, self.camera, self.exploration]):
             self.screen.fill(COLORS["black"])
             return
         self.world.draw(self.screen, self.camera, self.exploration)
+        visible_rect = pygame.Rect(
+            self.camera.offset.x - Settings.RENDER_MARGIN,
+            self.camera.offset.y - Settings.RENDER_MARGIN,
+            self.camera.screen_width + Settings.RENDER_MARGIN * 2,
+            self.camera.screen_height + Settings.RENDER_MARGIN * 2,
+        )
         drawables = []
         for npc in self.npcs:
-            drawables.append((npc.rect.bottom, npc))
+            if npc.rect.colliderect(visible_rect):
+                drawables.append((npc.rect.bottom, npc))
         for enemy in self.enemies:
-            drawables.append((enemy.rect.bottom, enemy))
+            if enemy.alive and enemy.rect.colliderect(visible_rect):
+                drawables.append((enemy.rect.bottom, enemy))
         for animal in self.animals:
-            drawables.append((animal.rect.bottom, animal))
+            if animal.alive and animal.rect.colliderect(visible_rect):
+                drawables.append((animal.rect.bottom, animal))
         drawables.append((self.player.rect.bottom, self.player))
+        rendered_entities = 0
         for _, entity in sorted(drawables, key=lambda item: item[0]):
             entity.draw(self.screen, self.camera)
-        self.particles.draw(self.screen, self.camera)
+            rendered_entities += 1
+        drawn_particles = self.particles.draw(self.screen, self.camera)
+        self.performance_stats["rendered_entities"] = rendered_entities
+        self.performance_stats["drawn_particles"] = drawn_particles
         self._draw_world_overlays()
 
         interaction_text = self._interaction_text()
@@ -803,6 +921,8 @@ class Game:
         self._draw_active_panel()
         if self.death_message_timer > 0:
             self._draw_death_message()
+        if self.show_performance_debug:
+            self._draw_performance_debug()
 
     def _draw_death_message(self) -> None:
         alpha = max(0, min(255, int(255 * min(1, self.death_message_timer / 0.7))))
@@ -817,24 +937,38 @@ class Game:
         self.screen.blit(shadow, rect.move(3, 3))
         self.screen.blit(image, rect)
 
+    def _draw_performance_debug(self) -> None:
+        lines = [
+            f"FPS: {self.clock.get_fps():.0f}",
+            f"Update: {self.performance_stats['update_ms']:.2f} ms",
+            f"Render: {self.performance_stats['render_ms']:.2f} ms",
+            f"Entidades draw/update: {self.performance_stats['rendered_entities']}/{self.performance_stats['updated_entities']}",
+            f"Particulas: {len(self.particles.particles)} total, {self.performance_stats['drawn_particles']} visiveis",
+            f"Luzes processadas: {self.performance_stats['processed_lights']}",
+            f"Fase: {self.time_system.get_day_phase()} alpha {self.time_system.get_darkness_alpha()}",
+        ]
+        panel = pygame.Rect(14, self.screen.get_height() - 178, 330, 158)
+        pygame.draw.rect(self.screen, (8, 10, 10, 210), panel, border_radius=6)
+        pygame.draw.rect(self.screen, (76, 88, 80), panel, 1, border_radius=6)
+        for index, line in enumerate(lines):
+            draw_text(self.screen, line, (panel.x + 12, panel.y + 10 + index * 20), COLORS["white"], 13)
+
     def _draw_world_overlays(self) -> None:
-        color, alpha = self.weather_system.overlay()
-        darkness = self.time_system.light_alpha()
-        total_alpha = min(255, alpha + darkness)
-        if total_alpha > 0:
+        color, w_alpha = self.weather_system.overlay()
+        if w_alpha > 0:
             overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
-            overlay.fill((*color, total_alpha))
-            if self.world and self.camera:
-                all_lights = [(self.player.center, 85, (255, 255, 230))] + self.world.light_sources(self.weather_system)
-                for pos, radius, light_color in all_lights:
-                    screen_pos = pos - self.camera.offset
-                    if -radius <= screen_pos.x <= self.screen.get_width() + radius and -radius <= screen_pos.y <= self.screen.get_height() + radius:
-                        light = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
-                        for step in range(radius, 0, -10):
-                            strength = int(255 * (step / radius) ** 2)
-                            pygame.draw.circle(light, (0, 0, 0, strength), (radius, radius), step)
-                        overlay.blit(light, (screen_pos.x - radius, screen_pos.y - radius), special_flags=pygame.BLEND_RGBA_SUB)
+            overlay.fill((color[0], color[1], color[2], w_alpha))
             self.screen.blit(overlay, (0, 0))
+        if self.world and self.camera and self.player:
+            processed = self.lighting_system.render(
+                self.screen,
+                self.camera,
+                self.time_system,
+                self.world.light_sources(self.weather_system),
+                self.player,
+                self.weather_system,
+            )
+            self.performance_stats["processed_lights"] = processed
 
     def _draw_active_panel(self) -> None:
         if not self.active_panel or not self.player or not self.world or not self.exploration:
@@ -849,6 +983,8 @@ class Game:
             self.shop_ui.draw(self.screen, self.player, self.shop_system)
         elif self.active_panel == "character":
             self.character_ui.draw(self.screen, self.player, self.quest_system)
+        elif self.active_panel == "quests":
+            self.quest_ui.draw(self.screen, self.player, self.quest_system)
         elif self.active_panel == "skills":
             self.character_ui.draw_skills_only(self.screen, self.player)
         elif self.active_panel == "map":
@@ -1363,9 +1499,12 @@ class Game:
             return
         npc = self._nearest_npc(76)
         if npc:
+            target_id = "vendor_milo_root" if npc.vendor else "npc"
+            self._quest_event("talk", target_id, 1)
             if npc.vendor and self.time_system.shop_is_open():
                 self.active_panel = "shop"
                 self.notifications.push("Loja aberta.")
+                self._quest_event("open_shop", "vendor_milo_root", 1)
             else:
                 self.dialogue_ui.open(npc)
                 self.active_panel = "dialogue"
@@ -1392,6 +1531,7 @@ class Game:
             return True
         self.particles.emit(self.player.center, color=COLORS["water"], amount=10, speed=55, lifetime=0.45, radius=3)
         self.notifications.push("Copo cheio com agua.")
+        self._quest_event("collect", "water_cup", 1)
         return True
 
     def _try_open_structure_by_click(self, mouse_world) -> bool:
@@ -1469,8 +1609,9 @@ class Game:
         self.world.add_structure(building_id, tile)
         self.player.inventory.remove_from_slot(self.player.inventory.selected_slot, 1)
         self.player.skills.add_xp("Construcao", 6)
-        self.quest_system.register_build(building_id)
-        self.quest_system.update_completion(self.player)
+        self._quest_event("build", building_id, 1)
+        if building_id in {"torch", "campfire", "stone_stove"}:
+            self._quest_event("use_light", building_id, 1)
         self.particles.emit(mouse_world, color=ITEMS[item.item_id].get("icon_color", COLORS["accent"]), amount=12, speed=70, lifetime=0.55, radius=3)
         self.notifications.push(f"Colocou {item.name}.")
         return True
@@ -1488,7 +1629,7 @@ class Game:
 
                 accepted = self.player.add_slot(InventorySlot(drop.item_id, drop.quantity, contents=drop.contents))
                 if accepted:
-                    self.quest_system.register_collect(drop.item_id, drop.quantity)
+                    self._quest_event("collect", drop.item_id, drop.quantity)
                     self.notifications.push(f"Pegou {ITEMS[drop.item_id]['name']} com conteudo.")
                     self.particles.emit(drop.pos, color=ITEMS[drop.item_id].get("icon_color", COLORS["white"]), amount=7, speed=55, lifetime=0.4, radius=3)
                 else:
@@ -1498,13 +1639,12 @@ class Game:
             leftover = self.player.add_item(drop.item_id, drop.quantity)
             collected = drop.quantity - leftover
             if collected > 0:
-                self.quest_system.register_collect(drop.item_id, collected)
+                self._quest_event("collect", drop.item_id, collected)
                 self.notifications.push(f"Pegou {collected} {ITEMS[drop.item_id]['name']}.")
                 self.particles.emit(drop.pos, color=ITEMS[drop.item_id].get("icon_color", COLORS["white"]), amount=7, speed=55, lifetime=0.4, radius=3)
             if leftover > 0:
                 self.world.spawn_ground_drop(drop.pos, drop.item_id, leftover)
                 self.notifications.push("Inventario cheio.")
-        self.quest_system.update_completion(self.player)
 
     def _try_fishing(self, mouse_world) -> bool:
         if not self.player or not self.world:
@@ -1526,6 +1666,7 @@ class Game:
         self.player.level.add_xp(4)
         self.particles.emit(mouse_world, color=COLORS["water"], amount=12, speed=70, lifetime=0.55, radius=3)
         self.notifications.push(f"Pescou: {ITEMS[caught]['name']}.")
+        self._quest_event("fish", caught, 1)
         return True
 
     def save_game(self) -> None:
@@ -1589,10 +1730,11 @@ class Game:
         self.exploration.from_list(data.get("exploration", []))
         self.time_system = TimeSystem.from_dict(data.get("time", {}))
         self.weather_system = WeatherSystem.from_dict(data.get("weather", {}))
+        self.lighting_system = LightingSystem(self.screen.get_size())
         self.economy = EconomySystem()
         self.shop_system = ShopSystem(self.economy)
         self.shop_system.load_dict(data.get("shop", {}))
-        self.quest_system = QuestSystem.from_dict(data.get("quests", {}))
+        self.quest_system = QuestSystem.from_dict(data.get("quests", {}), player=self.player)
         self.crafting_system = CraftingSystem()
         self.building_system = BuildingSystem()
         self.particles = ParticleManager()

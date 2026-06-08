@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 import pygame
 
+from src.core.settings import Settings
+
 
 @dataclass
 class Particle:
@@ -22,14 +24,16 @@ class Particle:
         self.lifetime -= dt
         return self.lifetime > 0
 
-    def draw(self, surface: pygame.Surface, camera) -> None:
+    def draw(self, surface: pygame.Surface, camera, visible_rect: pygame.Rect | None = None) -> bool:
         if self.lifetime <= 0:
-            return
+            return False
+        if visible_rect and not visible_rect.collidepoint(int(self.pos.x), int(self.pos.y)):
+            return False
         alpha = max(0, min(255, int(255 * (self.lifetime / self.max_lifetime))))
         radius = max(1, int(self.radius * (self.lifetime / self.max_lifetime)))
-        temp = pygame.Surface((radius * 2 + 2, radius * 2 + 2), pygame.SRCALPHA)
-        pygame.draw.circle(temp, (*self.color, alpha), (radius + 1, radius + 1), radius)
-        surface.blit(temp, self.pos - camera.offset - pygame.Vector2(radius, radius))
+        color = tuple(max(0, min(255, int(channel * (alpha / 255)))) for channel in self.color)
+        pygame.draw.circle(surface, color, self.pos - camera.offset, radius)
+        return True
 
 
 class ParticleManager:
@@ -37,6 +41,12 @@ class ParticleManager:
         self.particles: list[Particle] = []
 
     def emit(self, pos, color=(255, 255, 255), amount: int = 8, speed: float = 80, lifetime: float = 0.6, radius: float = 3) -> None:
+        if Settings.LOW_PERFORMANCE_MODE:
+            amount = max(1, amount // 2)
+        free_slots = max(0, Settings.MAX_PARTICLES - len(self.particles))
+        amount = min(amount, free_slots)
+        if amount <= 0:
+            return
         origin = pygame.Vector2(pos)
         for _ in range(amount):
             angle = random.uniform(0, math.tau)
@@ -58,7 +68,18 @@ class ParticleManager:
 
     def update(self, dt: float) -> None:
         self.particles = [particle for particle in self.particles if particle.update(dt)]
+        if len(self.particles) > Settings.MAX_PARTICLES:
+            self.particles = self.particles[-Settings.MAX_PARTICLES:]
 
-    def draw(self, surface: pygame.Surface, camera) -> None:
+    def draw(self, surface: pygame.Surface, camera) -> int:
+        visible_rect = pygame.Rect(
+            camera.offset.x - Settings.RENDER_MARGIN,
+            camera.offset.y - Settings.RENDER_MARGIN,
+            camera.screen_width + Settings.RENDER_MARGIN * 2,
+            camera.screen_height + Settings.RENDER_MARGIN * 2,
+        )
+        drawn = 0
         for particle in self.particles:
-            particle.draw(surface, camera)
+            if particle.draw(surface, camera, visible_rect):
+                drawn += 1
+        return drawn

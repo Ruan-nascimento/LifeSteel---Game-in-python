@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pygame
 
-from src.core.settings import COLORS
+from src.core.settings import COLORS, Settings
 from src.ui.widgets import Button, draw_panel, draw_text
 
 
@@ -12,7 +12,7 @@ class SettingsMenu:
         self.volume_music = 65
         self.volume_sfx = 80
         self.fullscreen = False
-        self.show_fps = True
+        self.show_fps = Settings.SHOW_FPS
         self.language = "PT-BR"
         self.buttons: list[Button] = []
 

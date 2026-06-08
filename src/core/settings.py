@@ -40,6 +40,15 @@ class Settings:
     UI_SMALL_FONT_SIZE = 14
     UI_BIG_FONT_SIZE = 42
 
+    SHOW_FPS = False
+    MAX_PARTICLES = 150
+    ENABLE_LIGHT_FLICKER = True
+    LIGHTING_UPDATE_EVERY_FRAMES = 1
+    LOW_PERFORMANCE_MODE = False
+    RENDER_MARGIN = 96
+    MAX_VISIBLE_SHOP_ROWS = 8
+    MAX_VISIBLE_QUEST_ROWS = 8
+
 
 COLORS = {
     "white": (242, 244, 235),
@@ -76,8 +85,10 @@ CONTROL_HELP = [
     "I inventario",
     "C status",
     "M mapa",
+    "J missoes",
     "Q consumir",
     "B construir",
     "K skills",
+    "F3 debug",
     "F5 salvar",
 ]

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from functools import lru_cache
+
 import pygame
 
 from src.core.settings import COLORS, Settings
 
 
+@lru_cache(maxsize=64)
 def get_font(size: int = Settings.UI_FONT_SIZE, bold: bool = False) -> pygame.font.Font:
     return pygame.font.SysFont(Settings.UI_FONT, size, bold=bold)
 

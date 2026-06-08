@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pygame
 
-from src.core.settings import COLORS
+from src.core.settings import COLORS, Settings
 from src.data.items_data import ITEMS
 from src.ui.widgets import Button, draw_panel, draw_text, draw_wrapped
 
@@ -87,7 +87,7 @@ class ShopUI:
         mouse_pos = pygame.mouse.get_pos()
         hovered_item = None
         hovered_slot = None
-        visible_stock = shop_system.available_stock(player, search=self.search, category=self.category, offset=self.scroll, limit=8)
+        visible_stock = shop_system.available_stock(player, search=self.search, category=self.category, offset=self.scroll, limit=Settings.MAX_VISIBLE_SHOP_ROWS)
         total_stock = shop_system.available_stock(player, search=self.search, category=self.category)
         for entry in visible_stock:
             item_id = entry["id"]
@@ -109,7 +109,7 @@ class ShopUI:
             track = pygame.Rect(left.right - 8, left.y + 42, 4, left.height - 54)
             pygame.draw.rect(surface, (35, 43, 39), track, border_radius=2)
             handle_h = max(28, int(track.height * 8 / max(8, len(total_stock))))
-            max_scroll = max(1, len(total_stock) - 8)
+            max_scroll = max(1, len(total_stock) - Settings.MAX_VISIBLE_SHOP_ROWS)
             handle_y = track.y + int((track.height - handle_h) * min(self.scroll, max_scroll) / max_scroll)
             pygame.draw.rect(surface, COLORS["accent"], (track.x, handle_y, track.width, handle_h), border_radius=2)
 
@@ -123,7 +123,7 @@ class ShopUI:
                 continue
             sellable.append((i, slot))
         y = right.y + 42
-        for slot_index, slot in sellable[:8]:
+        for slot_index, slot in sellable[:Settings.MAX_VISIBLE_SHOP_ROWS]:
             row = pygame.Rect(right.x + 10, y, right.width - 20, 38)
             if row.collidepoint(mouse_pos):
                 hovered_item = slot.item

@@ -59,7 +59,15 @@ class ReadingSystem:
         player.read_books.add(book_id)
         player.current_reading = None
         self.message = f"Voce terminou de ler {data.get('name', book_id)}."
-        return {"success": True, "message": self.message, "rewards": messages}
+        functionalities = data.get("functionalities") or {}
+        return {
+            "success": True,
+            "message": self.message,
+            "rewards": messages,
+            "book_id": book_id,
+            "target_skill": normalize_skill_name(functionalities.get("target_skill")),
+            "skill_xp": int(functionalities.get("skill_xp_reward", 0) or 0),
+        }
 
     def apply_book_rewards(self, player, book_data: dict) -> list[str]:
         functionalities = book_data.get("functionalities") or {}
