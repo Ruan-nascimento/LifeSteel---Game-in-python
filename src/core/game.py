@@ -1119,11 +1119,12 @@ class Game:
         selected = recipes.get(self.selected_recipe_id) if self.selected_recipe_id else None
         if selected:
             output_id, amount = selected["output"]
-            item_data = ITEMS[output_id]
+            item_data = ITEMS.get(output_id, {})
+            item_name = item_data.get("name", output_id)
             surface_icon = self.assets.item_icon(output_id, 56)
             self.screen.blit(surface_icon, (detail_rect.x + 18, detail_rect.y + 18))
-            draw_text(self.screen, selected["name"], (detail_rect.x + 88, detail_rect.y + 18), COLORS["accent"], 21, bold=True)
-            draw_text(self.screen, f"Cria: {amount}x {item_data['name']}", (detail_rect.x + 88, detail_rect.y + 48), COLORS["white"], 13)
+            draw_text(self.screen, selected.get("name", item_name), (detail_rect.x + 88, detail_rect.y + 18), COLORS["accent"], 21, bold=True)
+            draw_text(self.screen, f"Cria: {amount}x {item_name}", (detail_rect.x + 88, detail_rect.y + 48), COLORS["white"], 13)
             draw_wrapped(self.screen, item_data.get("description", ""), pygame.Rect(detail_rect.x + 18, detail_rect.y + 86, detail_rect.width - 36, 58), COLORS["white"], 13)
 
             draw_text(self.screen, "Materiais", (detail_rect.x + 18, detail_rect.y + 152), COLORS["accent"], 17, bold=True)
@@ -1135,7 +1136,8 @@ class Game:
                 can_materials = can_materials and ok
                 color = COLORS["accent_2"] if ok else COLORS["danger"]
                 self.screen.blit(self.assets.item_icon(item_id, 24), (detail_rect.x + 20, y - 3))
-                draw_text(self.screen, f"{ITEMS[item_id]['name']}: {owned}/{needed}", (detail_rect.x + 52, y), color, 15, bold=True)
+                ingredient_name = ITEMS.get(item_id, {}).get("name", item_id)
+                draw_text(self.screen, f"{ingredient_name}: {owned}/{needed}", (detail_rect.x + 52, y), color, 15, bold=True)
                 y += 32
 
             draw_text(self.screen, "Pode fazer", (detail_rect.x + 18, y + 10), COLORS["accent"], 17, bold=True)
